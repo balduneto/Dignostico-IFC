@@ -1,0 +1,1869 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale-1.0">
+    <title>Foresight Cidades - Radar de Futuros</title>
+    <!-- Carrega Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Carrega Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Carrega jsPDF e html2canvas para geração de PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* Estilo personalizado para a fonte Inter */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Estilos para os botões de rádio customizados */
+        .radio-option input[type="radio"] {
+            display: none;
+        }
+        .radio-option label {
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        /* Estilo quando o rádio está selecionado */
+        .radio-option input[type="radio"]:checked + label {
+            background-color: #4f46e5; /* indigo-600 */
+            color: #ffffff;
+            border-color: #4f46e5; /* indigo-600 */
+        }
+        .radio-option label:hover {
+            background-color: #3730a3; /* indigo-800 */
+            color: #ffffff;
+        }
+        
+        /* --- ESTILOS ODS ATUALIZADOS --- */
+        .sdg-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            width: 6rem; /* w-24 */
+        }
+        .sdg-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem; /* w-8 */
+            height: 2rem; /* h-8 */
+            border-radius: 9999px; /* rounded-full */
+            font-weight: 700; /* font-bold */
+            color: #ffffff;
+            font-size: 0.875rem; /* text-sm */
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            flex-shrink: 0;
+        }
+        .sdg-name {
+            font-size: 10px;
+            line-height: 1.2;
+            color: #9CA3AF; /* text-gray-400 */
+            margin-top: 0.25rem; /* mt-1 */
+        }
+        
+        /* --- NOVOS ESTILOS PARA A MATRIZ 2x2 --- */
+        .matrix-container {
+            display: grid;
+            grid-template-columns: auto 1fr 1fr;
+            grid-template-rows: 1fr 1fr auto; /* Ajustado para X-labels no fundo */
+            gap: 0.5rem;
+            align-items: stretch;
+            background-color: #1F2937; /* bg-gray-800 */
+            padding: 1rem;
+            border-radius: 0.5rem; /* rounded-lg */
+        }
+        .matrix-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 0.75rem; /* text-xs */
+            font-weight: 600; /* font-semibold */
+            color: #D1D5DB; /* text-gray-300 */
+        }
+        .matrix-label-y {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            padding: 0.5rem 0.25rem;
+            letter-spacing: 0.05em;
+        }
+        .matrix-label-x {
+            padding: 0.25rem 0.5rem;
+            letter-spacing: 0.05em;
+        }
+        .matrix-quadrant {
+            padding: 1rem;
+            border-radius: 0.5rem; /* rounded-lg */
+            transition: all 0.3s ease-in-out;
+            min-height: 130px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .matrix-quadrant.active {
+            border: 2px solid #FFFFFF;
+            background-color: #4f46e5; /* indigo-600 */
+            color: #FFFFFF;
+            transform: scale(1.03);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+        }
+        .matrix-quadrant.inactive {
+            border: 2px dashed #4B5563; /* border-gray-600 */
+            background-color: #374151; /* bg-gray-700 */
+            color: #D1D5DB; /* text-gray-300 */
+            opacity: 0.7;
+        }
+        .matrix-quadrant h4 {
+            font-weight: 700; /* font-bold */
+            font-size: 0.875rem; /* text-sm */
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+        .matrix-quadrant p {
+            font-size: 0.75rem; /* text-xs */
+            line-height: 1.4;
+        }
+        /* --- FIM DOS ESTILOS DA MATRIZ --- */
+
+        /* Cores dos ODS */
+        .sdg-1 { background-color: #E5243B; }
+        .sdg-2 { background-color: #DDA63A; }
+        .sdg-3 { background-color: #4C9F38; }
+        .sdg-4 { background-color: #C5192D; }
+        .sdg-5 { background-color: #FF3A21; }
+        .sdg-6 { background-color: #26BDE2; }
+        .sdg-7 { background-color: #FCC30B; }
+        .sdg-8 { background-color: #A21942; }
+        .sdg-9 { background-color: #FD6925; }
+        .sdg-10 { background-color: #DD1367; }
+        .sdg-11 { background-color: #FD9D24; }
+        .sdg-12 { background-color: #BF8B2E; }
+        .sdg-13 { background-color: #3F7E44; }
+        .sdg-14 { background-color: #0A97D9; }
+        .sdg-15 { background-color: #56C02B; }
+        .sdg-16 { background-color: #00689D; }
+        .sdg-17 { background-color: #19486A; }
+    </style>
+</head>
+<body class="h-full bg-gray-900 text-gray-100 flex flex-col antialiased">
+
+    <!-- Novo Cabeçalho com Logomarca -->
+    <header class="w-full bg-white p-2 shadow-md z-10 flex-shrink-0 flex justify-center">
+        <img src="https://i.postimg.cc/Fs2X2yRr/logos-infografico.png" 
+             alt="Logomarca Futuro das Cidades" 
+             class="h-10"
+             onerror="this.alt='Logomarca não carregada';">
+    </header>
+    
+    <!-- Wrapper para o layout principal (Sidebar + Main) -->
+    <div class="flex flex-1 overflow-hidden">
+
+    <!-- Sidebar de Navegação dos Eixos -->
+    <nav class="w-72 h-full bg-gray-800 shadow-lg p-5 flex flex-col flex-shrink-0" id="sidebar">
+        <div class="flex items-center space-x-3 mb-8">
+            <svg class="w-10 h-10 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639l4.25-1.063a1.012 1.012 0 011.012.215l1.091 1.091a1.012 1.012 0 001.414 0l1.091-1.091a1.012 1.012 0 011.012-.215l4.25 1.063a1.012 1.012 0 010 .639l-4.25 1.063a1.012 1.012 0 01-1.012-.215l-1.091-1.091a1.012 1.012 0 00-1.414 0l-1.091 1.091a1.012 1.012 0 01-1.012.215l-4.25-1.063z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12.75 6.036a1.012 1.012 0 010 .639l-4.25 1.063a1.012 1.012 0 01-1.012-.215l-1.091-1.091a1.012 1.012 0 00-1.414 0l-1.091 1.091a1.012 1.012 0 01-1.012-.215l-4.25 1.063a1.012 1.012 0 010-.639l4.25-1.063a1.012 1.012 0 011.012.215l1.091 1.091a1.012 1.012 0 001.414 0l1.091-1.091a1.012 1.012 0 011.012.215l4.25 1.063z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12.75 18.036a1.012 1.012 0 010 .639l-4.25 1.063a1.012 1.012 0 01-1.012-.215l-1.091-1.091a1.012 1.012 0 00-1.414 0l-1.091 1.091a1.012 1.012 0 01-1.012-.215l-4.25 1.063a1.012 1.012 0 010-.639l4.25-1.063a1.012 1.012 0 011.012.215l1.091 1.091a1.012 1.012 0 001.414 0l1.091-1.091a1.012 1.012 0 011.012.215l4.25 1.063z" />
+            </svg>
+            <h1 class="text-xl font-bold text-white">Foresight Cidades</h1>
+        </div>
+        <div class="text-sm text-indigo-200 mb-6">Navegue pelas "páginas" para preencher o diagnóstico e ver os resultados.</div>
+        
+        <!-- Navegação Principal (Eixos) -->
+        <span class="text-xs font-semibold text-gray-400 uppercase mb-2">Diagnóstico</span>
+        <div id="sidebar-buttons" class="space-y-2">
+            <!-- Botões dos eixos serão injetados aqui -->
+        </div>
+        
+        <!-- Navegação de Resultados (Radar e Análise) -->
+        <span class="text-xs font-semibold text-gray-400 uppercase mt-6 mb-2">Resultados</span>
+        <div id="sidebar-results" class="space-y-2">
+            <!-- Botões de Radar e Análise serão injetados aqui -->
+        </div>
+    </nav>
+
+    <!-- Conteúdo Principal -->
+    <main class="flex-1 h-full flex flex-col overflow-hidden">
+        
+        <!-- Header da Página Selecionada -->
+        <header class="bg-gray-800/50 backdrop-blur-sm border-b border-gray-700 p-6 flex justify-between items-start">
+            <div id="header-content" class="flex items-center space-x-4">
+                <!-- Conteúdo do Header injetado aqui -->
+            </div>
+            <div id="sdg-pills" class="flex items-start space-x-2">
+                <!-- Pílulas ODS injetadas aqui -->
+            </div>
+        </header>
+
+        <!-- Área de Conteúdo (Paginada) -->
+        <div class="flex-1 overflow-y-auto p-8 scroll-smooth" id="main-content-area">
+            
+            <!-- Página: Introdução (NOVO) -->
+            <section id="intro-container" class="space-y-4 hidden text-gray-200 max-w-4xl">
+                <h2 class="text-2xl font-bold text-white mb-4">Bem-vindo ao Índice pelo Futuro das Cidades (IFC)</h2>
+                <p class="text-base leading-relaxed">
+                    O Índice pelo Futuro das Cidades (IFC) é uma ferramenta estratégica de diagnóstico e projeção que permite compreender, de forma integrada, o nível de maturidade e o potencial de desenvolvimento dos municípios em múltiplas dimensões: ambiental, econômica, educacional, social, de governança, infraestrutura e saúde.
+                </p>
+                <p class="text-base leading-relaxed">
+                    Mais do que medir indicadores, o IFC revela tendências e futuros possíveis, ajudando gestores públicos, instituições e cidadãos a enxergarem onde a cidade está e para onde pode ir.
+                </p>
+                <p class="text-base leading-relaxed">
+                    Ao promover uma leitura sistêmica das forças e fragilidades do território, o índice orienta decisões baseadas em evidências, incentiva políticas públicas sustentáveis e impulsiona a construção de cidades mais inteligentes, inclusivas, resilientes e preparadas para os desafios do amanhã.
+                </p>
+                <div class="pt-5">
+                    <button 
+                        onclick="document.getElementById('questions-container').scrollIntoView({ behavior: 'smooth' });"
+                        class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-lg hover:bg-indigo-700 transition-colors">
+                        Iniciar Diagnóstico
+                    </button>
+                </div>
+            </section>
+
+            <!-- Página: Perguntas (Container) -->
+            <section id="questions-container" class="space-y-6 hidden">
+                <!-- Perguntas injetadas aqui -->
+            </section>
+            
+            <!-- Página: Gráfico Radar (Container) -->
+            <section id="chart-container" class="bg-gray-800 rounded-lg shadow-2xl p-6 flex flex-col hidden h-full">
+                <h2 class="text-xl font-bold text-white mb-4">Radar de Futuros Prováveis</h2>
+                <p class="text-sm text-gray-400 mb-4">O gráfico simula o futuro provável com base na inércia (notas baixas) ou momentum (notas altas) das respostas atuais.</p>
+                
+                <!-- Controles do Gráfico -->
+                <div class="flex items-center justify-center space-x-4 mb-4">
+                    <label class="flex items-center space-x-2 text-sm cursor-pointer">
+                        <input type="checkbox" id="toggle-y5" class="rounded text-indigo-500 focus:ring-indigo-500" checked onchange="window.app.toggleProjection('y5')">
+                        <span>+5 Anos</span>
+                    </label>
+                    <label class="flex items-center space-x-2 text-sm cursor-pointer">
+                        <input type="checkbox" id="toggle-y10" class="rounded text-indigo-500 focus:ring-indigo-500" checked onchange="window.app.toggleProjection('y10')">
+                        <span>+10 Anos</span>
+                    </label>
+                    <label class="flex items-center space-x-2 text-sm cursor-pointer">
+                        <input type="checkbox" id="toggle-y20" class="rounded text-indigo-500 focus:ring-indigo-500" checked onchange="window.app.toggleProjection('y20')">
+                        <span>+20 Anos</span>
+                    </label>
+                </div>
+                
+                <!-- Canvas do Gráfico -->
+                <div class="relative flex-1" style="min-height: 500px;">
+                    <canvas id="radarChart"></canvas>
+                </div>
+            </section>
+            
+            <!-- Página: Análise Estratégica (Container) -->
+            <section id="analysis-report" class="bg-gray-800 rounded-lg shadow-xl p-6 hidden space-y-8">
+                <!-- Análise será injetada aqui -->
+            </section>
+
+        </div>
+    </main>
+
+    </div> <!-- Fim do wrapper principal -->
+
+    <script>
+        // Objeto principal da aplicação
+        window.app = {
+            data: {},
+            
+            // Mapeamento de Nomes ODS
+            odsNames: {
+                1: "Erradicação da Pobreza",
+                2: "Fome Zero e Agricultura Sustentável",
+                3: "Saúde e Bem-Estar",
+                4: "Educação de Qualidade",
+                5: "Igualdade de Gênero",
+                6: "Água Potável e Saneamento",
+                7: "Energia Limpa e Acessível",
+                8: "Trabalho Decente e Crescimento Econômico",
+                9: "Indústria, Inovação e Infraestrutura",
+                10: "Redução das Desigualdades",
+                11: "Cidades e Comunidades Sustentáveis",
+                12: "Consumo e Produção Responsáveis",
+                13: "Ação Contra a Mudança Global do Clima",
+                14: "Vida na Água",
+                15: "Vida Terrestre",
+                16: "Paz, Justiça e Instituições Eficazes",
+                17: "Parcerias e Meios de Implementação"
+            },
+            
+            state: {
+                currentPage: 'ambiental', // Agora controla a "página" visível
+                answers: {},
+                scores: {}, // Scores de 1 a 4
+                chart: null,
+                chartGapInstance: null, 
+                chartEffortInstance: null, 
+                chartProjectionReportInstance: null, // <-- NOVO: Referência para o gráfico no relatório
+                showProjections: {
+                    y5: true,
+                    y10: true,
+                    y20: true
+                },
+                isInitialized: false
+            },
+
+            // Definição dos Eixos e Perguntas
+            setupData: function() {
+                this.data = {
+                    // Eixo Ambiental
+                    'ambiental': {
+                        label: 'Ambiental',
+                        color: 'border-green-500', // Verde
+                        icon: `<svg class="w-8 h-8 text-green-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c1.354 0 2.664-.343 3.861-.976M12 21c-1.354 0-2.664-.343-3.861-.976m14.322-9.488c.28.28.55.582.797.901M2.879 11.522c.28.28.55.582.797.901m17.54-.622c.623 1.954.945 4.028.945 6.147C21 18.613 16.97 22.5 12 22.5S3 18.613 3 13.647c0-2.119.322-4.193.945-6.147M12 3c-1.354 0-2.664.343-3.861.976M12 3c1.354 0 2.664.343 3.861.976m-7.722 1.462c-.28-.28-.55-.582-.797-.901M21.121 4.522c-.28-.28-.55-.582-.797-.901M12 9a3 3 0 100-6 3 3 0 000 6z" /></svg>`,
+                        description: "Futuro ligado à sustentabilidade, gestão de resíduos e equilíbrio ecológico.",
+                        ods: [6, 11, 12, 13, 15],
+                        questions: [
+                            { 
+                                q: "Como o município gerencia os resíduos sólidos urbanos?",
+                                note: "Nota máxima (D): Não é apenas coletar, mas ter uma economia circular, onde quase tudo é recuperado (compostagem, reciclagem) e a população é educada para reduzir o lixo na origem.",
+                                options: [
+                                    { text: "Não possui coleta regular.", value: 1 },
+                                    { text: "Possui coleta, mas sem separação seletiva.", value: 2 },
+                                    { text: "Possui coleta seletiva parcial.", value: 3 },
+                                    { text: "Possui coleta seletiva com recuperação de resíduos e educação ambiental ativa.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "Qual o nível de cobertura vegetal preservada no território municipal?",
+                                note: "Nota máxima (D): Significa ir além de apenas 'ter árvores', mas possuir planos ativos de manejo, corredores ecológicos e reflorestamento contínuo, integrando a natureza à cidade.",
+                                options: [
+                                    { text: "Inferior a 10%.", value: 1 },
+                                    { text: "Entre 10% e 30%.", value: 2 },
+                                    { text: "Entre 30% e 60%.", value: 3 },
+                                    { text: "Superior a 60%, com planos de manejo e reflorestamento.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "Como o município acompanha o desmatamento?",
+                                note: "Nota máxima (D): A cidade usa tecnologia (satélites, drones) para monitorar em tempo real e age *antes* que o desmatamento ocorra, com fiscalização preditiva e não apenas reativa.",
+                                options: [
+                                    { text: "Não monitora.", value: 1 },
+                                    { text: "Monitora de forma eventual.", value: 2 },
+                                    { text: "Possui sistema básico de alerta.", value: 3 },
+                                    { text: "Monitora com dados georreferenciados e ações preventivas.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "Há políticas de educação ambiental contínua?",
+                                note: "Nota máxima (D): A educação ambiental não é um 'dia da árvore', mas uma política permanente que envolve escolas, empresas (logística reversa) e a comunidade em mutirões e ações práticas.",
+                                options: [
+                                    { text: "Não.", value: 1 },
+                                    { text: "Apenas campanhas pontuais.", value: 2 },
+                                    { text: "Programas em escolas.", value: 3 },
+                                    { text: "Programas integrados com escolas, empresas e comunidade.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "Como o município se posiciona em relação aos ODS ambientais (11, 12, 13, 15)?",
+                                note: "Nota máxima (D): Os ODS não são um quadro na parede; eles são usados ativamente. As metas do plano diretor, do orçamento e dos projetos de lei estão 100% alinhadas e são monitoradas por indicadores ODS.",
+                                options: [
+                                    { text: "Desconhece.", value: 1 },
+                                    { text: "Planeja alinhar-se.", value: 2 },
+                                    { text: "Está parcialmente alinhado.", value: 3 },
+                                    { text: "Integra metas e indicadores no planejamento municipal.", value: 4 }
+                                ]
+                            }
+                        ]
+                    },
+                    // Eixo Economia
+                    'economia': {
+                        label: 'Economia',
+                        color: 'border-orange-500', // Laranja
+                        icon: `<svg class="w-8 h-8 text-orange-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.75A.75.75 0 013 4.5h.75m0 0v.75A.75.75 0 013 6h-.75m0 0H2.25m1.5.75H3.75m0 0H2.25m1.5 0H3.75m0 0H2.25m1.5 0H3.75M6 6v.75A.75.75 0 015.25 7.5h-.75m0 0v-.75A.75.75 0 015.25 6h.75m0 0v.75A.75.75 0 015.25 7.5h-.75m0 0H4.5m1.5.75H6m0 0H4.5m1.5 0H6m0 0H4.5m1.5 0H6m0 0H4.5m1.5 0H6m2.25-1.5v.75A.75.75 0 017.5 7.5h-.75m0 0v-.75A.75.75 0 017.5 6h.75m0 0v.75A.75.75 0 017.5 7.5h-.75m0 0H6.75m1.5.75H8.25m0 0H6.75m1.5 0H8.25m0 0H6.75m1.5 0H8.25m0 0H6.75m1.5 0H8.25M10.5 6v.75A.75.75 0 019.75 7.5h-.75m0 0v-.75A.75.75 0 019.75 6h.75m0 0v.75A.75.75 0 019.75 7.5h-.75m0 0H9m1.5.75H10.5m0 0H9m1.5 0H10.5m0 0H9m1.5 0H10.5m0 0H9m1.5 0H10.5m7.5-1.5v.75A.75.75 0 0117.25 7.5h-.75m0 0v-.75A.75.75 0 0117.25 6h.75m0 0v.75A.75.75 0 0117.25 7.5h-.75m0 0H16.5m1.5.75H18m0 0H16.5m1.5 0H18m0 0H16.5m1.5 0H18m0 0H16.5m1.5 0H18m2.25-1.5v.75A.75.75 0 0119.5 7.5h-.75m0 0v-.75A.75.75 0 0119.5 6h.75m0 0v.75A.75.75 0 0119.5 7.5h-.75m0 0H18.75m1.5.75H20.25m0 0H18.75m1.5 0H20.25m0 0H18.75m1.5 0H20.25m0 0H18.75m1.5 0H20.25m0 0h-.75A.75.75 0 0118.75 6v-.75m0 0h.75A.75.75 0 0120.25 6v.75m0 0H18.75m1.5 0H20.25m0 0H18.75m1.5 0H20.25m0 0H18.75m1.5 0H20.25m0 0H18.75M12 12.75a.75.75 0 01.75-.75h.01a.75.75 0 01.75.75v.01a.75.75 0 01-.75.75h-.01a.75.75 0 01-.75-.75v-.01zM15 12.75a.75.75 0 01.75-.75h.01a.75.75 0 01.75.75v.01a.75.75 0 01-.75.75h-.01a.75.75 0 01-.75-.75v-.01zM18 12.75a.75.75 0 01.75-.75h.01a.75.75 0 01.75.75v.01a.75.75 0 01-.75.75h-.01a.75.75 0 01-.75-.75v-.01zM12 15.75a.75.75 0 01.75-.75h.01a.75.75 0 01.75.75v.01a.75.75 0 01-.75.75h-.01a.75.75 0 01-.75-.75v-.01zM15 15.75a.75.75 0 01.75-.75h.01a.75.75 0 01.75.75v.01a.75.75 0 01-.75.75h-.01a.75.75 0 01-.75-.75v-.01zM18 15.75a.75.75 0 01.75-.75h.01a.75.75 0 01.75.75v.01a.75.75 0 01-.75.75h-.01a.75.75 0 01-.75-.75v-.01zM12 18.75a.75.75 0 01.75-.75h.01a.75.75 0 01.75.75v.01a.75.75 0 01-.75.75h-.01a.75.75 0 01-.75-.75v-.01zM15 18.75a.75.75 0 01.75-.75h.01a.75.75 0 01.75.75v.01a.75.75 0 01-.75.75h-.01a.75.75 0 01-.75-.75v-.01zM18 18.75a.75.75 0 01.75-.75h.01a.75.75 0 01.75.75v.01a.75.75 0 01-.75.75h-.01a.75.75 0 01-.75-.75v-.01z" /></svg>`,
+                        description: "Futuro voltado à autonomia financeira, produtividade e inovação econômica.",
+                        ods: [8, 9, 12],
+                        questions: [
+                            { 
+                                q: "Qual a vocação econômica principal do município?",
+                                note: "Esta pergunta é apenas para diagnóstico contextual e não afeta a pontuação de maturidade.",
+                                options: [
+                                    { text: "Agronegócio", value: 0 },
+                                    { text: "Indústria de Transformação", value: 0 },
+                                    { text: "Comércio Varejista", value: 0 },
+                                    { text: "Serviços (Saúde, Educação, TI)", value: 0 },
+                                    { text: "Turismo e Hospitalidade", value: 0 },
+                                    { text: "Mineração / Extrativismo", value: 0 },
+                                    { text: "Administração Pública", value: 0 },
+                                    { text: "Outra / Mista", value: 0 }
+                                ]
+                            },
+                            { 
+                                q: "Qual a principal fonte de receita do município?",
+                                note: "Nota máxima (D): O município não depende de repasses; ele gera receita própria robusta através de uma economia diversificada, que inclui tecnologia, serviços de alto valor e economia criativa.",
+                                options: [
+                                    { text: "Recursos externos (transferências).", value: 1 },
+                                    { text: "Mistura equilibrada de fontes.", value: 2 },
+                                    { text: "Predominância de receitas próprias.", value: 3 },
+                                    { text: "Receitas próprias sustentadas por inovação e economia criativa.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "Como o município equilibra receitas e despesas?",
+                                note: "Nota máxima (D): A gestão financeira é digital e preditiva. O município não apenas 'fecha as contas', mas o faz com folga, usando dados para prever gastos e otimizar investimentos.",
+                                options: [
+                                    { text: "Em déficit recorrente.", value: 1 },
+                                    { text: "Em equilíbrio instável.", value: 2 },
+                                    { text: "Com superávit ocasional.", value: 3 },
+                                    { text: "Em equilíbrio estrutural com gestão digital de finanças.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "O município investe em inovação e empreendedorismo?",
+                                note: "Nota máxima (D): Não se trata apenas de 'ter uma incubadora', mas de fomentar um ecossistema completo com capital de risco, parcerias universidade-empresa e políticas ativas para startups.",
+                                options: [
+                                    { text: "Não há incentivo.", value: 1 },
+                                    { text: "Há incentivos pontuais.", value: 2 },
+                                    { text: "Há incubadoras e parcerias locais.", value: 3 },
+                                    { text: "Existe um ecossistema de inovação estruturado.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "Qual o comportamento do PIB municipal nos últimos anos?",
+                                note: "Nota máxima (D): O crescimento não é apenas rápido, é *desacoplado* do consumo de recursos. É um crescimento verde, baseado em tecnologia, inovação e sustentabilidade.",
+                                options: [
+                                    { text: "Estagnado.", value: 1 },
+                                    { text: "Crescimento tímido.", value: 2 },
+                                    { text: "Crescimento moderado e sustentável.", value: 3 },
+                                    { text: "Crescimento acelerado com base em inovação e sustentabilidade.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "Como o município apoia a capacitação profissional e geração de emprego?",
+                                note: "Nota máxima (D): A cidade possui uma rede que conecta, em tempo real, as vagas das empresas com a formação de pessoas, usando 'vouchers' de capacitação e hubs de treinamento para a 'nova economia'.",
+                                options: [
+                                    { text: "Sem políticas.", value: 1 },
+                                    { text: "Programas esporádicos.", value: 2 },
+                                    { text: "Parcerias com instituições de ensino.", value: 3 },
+                                    { text: "Rede estruturada de capacitação vinculada a demandas produtivas.", value: 4 }
+                                ]
+                            }
+                        ]
+                    },
+                    // Eixo Educação
+                    'educacao': {
+                        label: 'Educação',
+                        color: 'border-purple-500', // Roxo
+                        icon: `<svg class="w-8 h-8 text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18c-2.305 0-4.408.867-6 2.292m0-14.25v14.25" /></svg>`,
+                        description: "Futuro ligado à equidade, aprendizagem significativa e inclusão digital.",
+                        ods: [4, 10],
+                        questions: [
+                            { 
+                                q: "Como está a cobertura da educação básica?",
+                                note: "Nota máxima (D): A educação não é apenas 'para todos', ela é 'excelente para todos'. A gestão foca em zerar desigualdades de aprendizado entre centro e periferia e usa pedagogias ativas.",
+                                options: [
+                                    { text: "Insuficiente.", value: 1 },
+                                    { text: "Parcial e desigual.", value: 2 },
+                                    { text: "Ampla, mas com desafios de qualidade.", value: 3 },
+                                    { text: "Universalizada, com foco em resultados e inovação pedagógica.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "Qual o nível de qualificação dos docentes?",
+                                note: "Nota máxima (D): Os professores são vistos como 'designers de aprendizagem'. Eles têm formação continuada, mestrado/doutorado incentivado e autonomia para aplicar métodos inovadores em sala.",
+                                options: [
+                                    { text: "Baixo.", value: 1 },
+                                    { text: "Intermediário.", value: 2 },
+                                    { text: "Alto (ensino superior predominante).", value: 3 },
+                                    { text: "Muito alto, com formação continuada e inovação didática.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "Como o município enfrenta o abandono escolar?",
+                                note: "Nota máxima (D): A cidade usa 'busca ativa' preditiva, identificando o risco de abandono *antes* de acontecer, e atua de forma intersetorial (saúde, social) para proteger o aluno.",
+                                options: [
+                                    { text: "Não possui estratégias.", value: 1 },
+                                    { text: "Identifica casos, mas sem políticas estruturadas.", value: 2 },
+                                    { text: "Implementa programas de prevenção.", value: 3 },
+                                    { text: "Monitora e atua de forma intersetorial com resultados positivos.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "As escolas possuem acesso à internet e tecnologias educacionais?",
+                                note: "Nota máxima (D): A tecnologia é 'invisível' e ubíqua. Não se trata de ter um 'laboratório', mas de ter conectividade total, robótica, programação e pensamento computacional integrados ao currículo.",
+                                options: [
+                                    { text: "Quase nenhuma.", value: 1 },
+                                    { text: "Algumas escolas conectadas.", value: 2 },
+                                    { text: "Conectividade ampla, mas pouco uso pedagógico.", value: 3 },
+                                    { text: "Integração digital com práticas inovadoras.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "Como a gestão educacional utiliza dados (IDEB, metas, indicadores)?",
+                                note: "Nota máxima (D): Os dados (IDEB, etc.) são usados em tempo real para tomada de decisão. A gestão sabe quais alunos têm dificuldade e aloca recursos pedagógicos imediatamente para corrigir a rota.",
+                                options: [
+                                    { text: "Não utiliza.", value: 1 },
+                                    { text: "Utiliza apenas para relatórios.", value: 2 },
+                                    { text: "Utiliza para planejar ações.", value: 3 },
+                                    { text: "Baseia decisões e inovação pedagógica nos indicadores.", value: 4 }
+                                ]
+                            }
+                        ]
+                    },
+                    // Eixo Governança
+                    'governanca': {
+                        label: 'Governança',
+                        color: 'border-yellow-500', // Amarelo
+                        icon: `<svg class="w-8 h-8 text-yellow-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h12M3.75 3v-1.5A.75.75 0 014.5 0h15a.75.75 0 01.75.75V15a.75.75 0 01-.75.75h-4.5M3.75 3h15M12 19.5h.008v.008H12v-.008zM12 16.5h.008v.008H12v-.008zM12 13.5h.008v.008H12v-.008zM12 10.5h.008v.008H12v-.008zM12 7.5h.008v.008H12V7.5zM15 19.5h.008v.008H15v-.008zM15 16.5h.008v.008H15v-.008zM15 13.5h.008v.008H15v-.008zM15 10.5h.008v.008H15v-.008zM15 7.5h.008v.008H15V7.5zM18 19.5h.008v.008H18v-.008zM18 16.5h.008v.008H18v-.008zM18 13.5h.008v.008H18v-.008zM18 10.5h.008v.008H18v-.008zM18 7.5h.008v.008H18V7.5z" /></svg>`,
+                        description: "Futuro ligado à transparência, eficiência e gestão pública inteligente.",
+                        ods: [16, 17],
+                        questions: [
+                            { 
+                                q: "Como está a proporção de servidores por habitante?",
+                                note: "Nota máxima (D): A gestão é 'data-driven'. O número de servidores é otimizado não por 'achismo', mas por análise de desempenho, automação de processos e digitalização de serviços.",
+                                options: [
+                                    { text: "Desbalanceada e sem controle.", value: 1 },
+                                    { text: "Próxima da média, mas sem análise de eficiência.", value: 2 },
+                                    { text: "Equilibrada e monitorada.", value: 3 },
+                                    { text: "Otimizada com base em gestão de desempenho.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "O município publica dados abertos e relatórios de gestão?",
+                                note: "Nota máxima (D): A transparência é radical e em tempo real. O cidadão não precisa 'pedir' dados (LAI); ele acessa painéis (dashboards) interativos e fáceis de entender sobre *todos* os gastos.",
+                                options: [
+                                    { text: "Não.", value: 1 },
+                                    { text: "Parcialmente.", value: 2 },
+                                    { text: "Sim, com transparência básica.", value: 3 },
+                                    { text: "Sim, em formato aberto, com participação cidadã.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "Como é avaliada a capacidade de pagamento do município (CAPAG)?",
+                                note: "Nota máxima (D): O município tem 'nota A' e usa seu crédito para fazer investimentos estratégicos (PPPs, concessões) que se pagam e trazem retorno, não apenas para custeio.",
+                                options: [
+                                    { text: "Baixa.", value: 1 },
+                                    { text: "Média.", value: 2 },
+                                    { text: "Alta.", value: 3 },
+                                    { text: "Excelente, com planejamento e gestão preditiva.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "Os gastos públicos são avaliados por resultado?",
+                                note: "Nota máxima (D): O orçamento não é avaliado pelo 'quanto se gastou', mas pelo 'impacto que gerou'. A gestão usa 'orçamento base-zero' e foca em indicadores de entrega (accountability).",
+                                options: [
+                                    { text: "Não.", value: 1 },
+                                    { text: "Ocasionalmente.", value: 2 },
+                                    { text: "Regularmente.", value: 3 },
+                                    { text: "Com sistemas de desempenho e accountability.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "Há participação social nas decisões públicas?",
+                                note: "Nota máxima (D): A participação vai além de 'audiências públicas'. A cidade usa plataformas digitais (GovTech) para 'orçamento participativo' digital e co-criação de políticas com a população.",
+                                options: [
+                                    { text: "Nenhuma.", value: 1 },
+                                    { text: "Consultiva.", value: 2 },
+                                    { text: "Participativa.", value: 3 },
+                                    { text: "Colaborativa e digital (governo aberto).", value: 4 }
+                                ]
+                            }
+                        ]
+                    },
+                    // Eixo Infraestrutura
+                    'infraestrutura': {
+                        label: 'Infraestrutura',
+                        color: 'border-blue-500', // Azul
+                        icon: `<svg class="w-8 h-8 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m-6.75-13.5v13.5m-3.75-13.5v13.5m10.5-13.5v13.5m6.75-13.5v13.5m-3.75-13.5v13.5m0-13.5h-13.5m13.5 0h-13.5" /></svg>`,
+                        description: "Futuro ligado à conectividade, saneamento e resiliência urbana.",
+                        ods: [6, 9, 11],
+                        questions: [
+                            { 
+                                q: "Como está o acesso da população ao serviço de água tratada?",
+                                note: "Nota máxima (D): O acesso é 100% universalizado e a gestão é 'inteligente', usando sensores para detectar vazamentos em tempo real, garantindo 'segurança hídrica' e qualidade máxima.",
+                                options: [
+                                    { text: "Inferior a 50%.", value: 1 },
+                                    { text: "Entre 50% e 80%.", value: 2 },
+                                    { text: "Superior a 80%.", value: 3 },
+                                    { text: "Universalizado, com monitoramento de qualidade.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "E o tratamento de esgoto?",
+                                note: "Nota máxima (D): 100% do esgoto é tratado e visto como um recurso. A cidade usa estações modernas que geram biogás (energia) e água de reuso para indústria ou agricultura urbana.",
+                                options: [
+                                    { text: "Quase inexistente.", value: 1 },
+                                    { text: "Parcial e irregular.", value: 2 },
+                                    { text: "Amplo, mas com perdas.", value: 3 },
+                                    { text: "Total e sustentável, com reuso e inovação.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "Há conectividade digital ampla (internet pública, fibra, wi-fi comunitário)?",
+                                note: "Nota máxima (D): A conectividade é tratada como um direito básico, como água e luz. A cidade é 100% 'fibeirada', com 5G e Wi-Fi público de alta velocidade em todas as praças, escolas e postos de saúde.",
+                                options: [
+                                    { text: "Não.", value: 1 },
+                                    { text: "Poucos pontos.", value: 2 },
+                                    { text: "Rede estruturada.", value: 3 },
+                                    { text: "Cidade inteligente, conectada e inclusiva.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "A infraestrutura urbana é resiliente a desastres climáticos?",
+                                note: "Nota máxima (D): A cidade é uma 'esponja'. O planejamento usa 'infraestrutura verde' (parques alagáveis, telhados verdes) e simulações de 'gêmeos digitais' para se antecipar a enchentes e secas.",
+                                options: [
+                                    { text: "Não.", value: 1 },
+                                    { text: "Pouco preparada.", value: 2 },
+                                    { text: "Com planos de contingência.", value: 3 },
+                                    { text: "Planejada com base em dados e simulações.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "Como a cidade trata o planejamento urbano?",
+                                note: "Nota máxima (D): O Plano Diretor é vivo, digital e alinhado aos ODS. A cidade promove o 'direito à cidade', com uso misto do solo, 'cidades de 15 minutos' e foco total em mobilidade ativa (caminhada, bicicleta).",
+                                options: [
+                                    { text: "Sem plano diretor.", value: 1 },
+                                    { text: "Com plano desatualizado.", value: 2 },
+                                    { text: "Plano ativo e revisado.", value: 3 },
+                                    { text: "Plano diretor integrado aos ODS e aos dados de futuro urbano.", value: 4 }
+                                ]
+                            }
+                        ]
+                    },
+                    // Eixo Saúde
+                    'saude': {
+                        label: 'Saúde',
+                        color: 'border-red-500', // Vermelho
+                        icon: `<svg class="w-8 h-8 text-red-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" /></svg>`,
+                        description: "Futuro ligado à qualidade de vida, prevenção e cobertura integral.",
+                        ods: [3, 5],
+                        questions: [
+                            { 
+                                q: "Como está a cobertura médica na rede SUS municipal?",
+                                note: "Nota máxima (D): A cobertura é 100% (Saúde da Família) e usa tecnologia. O cidadão agenda consultas por app, faz teleconsultas para casos simples e tem seu 'prontuário único' digital.",
+                                options: [
+                                    { text: "Deficiente.", value: 1 },
+                                    { text: "Parcial.", value: 2 },
+                                    { text: "Boa.", value: 3 },
+                                    { text: "Ampla e com teleatendimento.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "Como é monitorada a saúde infantil (peso, nutrição, obesidade)?",
+                                note: "Nota máxima (D): Os dados são integrados entre postos de saúde, creches e escolas. O sistema gera alertas preditivos sobre risco nutricional, permitindo ação imediata da rede de proteção.",
+                                options: [
+                                    { text: "Não é.", value: 1 },
+                                    { text: "Com dados esporádicos.", value: 2 },
+                                    { text: "Regularmente.", value: 3 },
+                                    { text: "Integrada com escolas e famílias.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "Há campanhas permanentes de vacinação e prevenção?",
+                                note: "Nota máxima (D): A cidade foca na 'saúde preventiva'. Usa agentes de saúde, mídia e apps para busca ativa de vacinação e promove 'ilhas de cuidado' (esporte, saúde mental) nos bairros.",
+                                options: [
+                                    { text: "Não.", value: 1 },
+                                    { text: "Sim, mas sazonais.", value: 2 },
+                                    { text: "Frequentes.", value: 3 },
+                                    { text: "Integradas à educação e à comunidade.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "O município utiliza dados de saúde para planejamento?",
+                                note: "Nota máxima (D): A cidade usa 'Business Intelligence' (BI) e 'mapas de calor' para alocar recursos (médicos, ambulâncias) onde a demanda é maior, com base em dados epidemiológicos em tempo real.",
+                                options: [
+                                    { text: "Não.", value: 1 },
+                                    { text: "Pouco.", value: 2 },
+                                    { text: "Sim, parcialmente.", value: 3 },
+                                    { text: "Totalmente, com base em BI e painéis preditivos.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "Como é a integração entre saúde, educação e assistência social?",
+                                note: "Nota máxima (D): Os sistemas (SUAS, SUS, Educação) 'conversam' entre si. Um 'prontuário único do cidadão' permite que a rede de proteção atue de forma 360º na vida da família.",
+                                options: [
+                                    { text: "Inexistente.", value: 1 },
+                                    { text: "Pontual.", value: 2 },
+                                    { text: "Regular.", value: 3 },
+                                    { text: "Integrada e digitalizada.", value: 4 }
+                                ]
+                            }
+                        ]
+                    },
+                    // Eixo Socioeconômico
+                    'socioeconomico': {
+                        label: 'Socioeconômico',
+                        color: 'border-brown-500', // Marrom/Amarelo-escuro
+                        icon: `<svg class="w-8 h-8 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A9.06 9.06 0 016 18.719m12 0a9.06 9.06 0 00-6-2.21m6 2.21a9.06 9.06 0 01-6 2.21m-6-2.21a9.06 9.06 0 01-6-2.21m6 2.21a9.06 9.06 0 00-6 2.21m6-2.21c-2.17 0-4.207.576-5.963 1.584A9.06 9.06 0 016 18.719m0 0a9.094 9.094 0 01-3.741-.479 3 3 0 014.682-2.72m-.94 3.198l-.001.031c0 .225.012.447.037.666A11.944 11.944 0 0012 21c2.17 0 4.207-.576 5.963-1.584A9.06 9.06 0 0018 18.719m-6 2.21a9.06 9.06 0 01-6-2.21m6 2.21a9.06 9.06 0 00-6-2.21m6 2.21a9.06 9.06 0 016-2.21m-6 2.21a9.06 9.06 0 006-2.21m0 0a9.094 9.094 0 003.741.479 3 3 0 00-4.682 2.72m.94-3.198l.001-.031c0-.225.012-.447.037-.666A11.944 11.944 0 0112 3c2.17 0 4.207.576 5.963 1.584A9.06 9.06 0 0118 6.281m0 0a9.06 9.06 0 00-6 2.21m6-2.21a9.06 9.06 0 01-6 2.21m-6-2.21a9.06 9.06 0 01-6-2.21m6 2.21a9.06 9.06 0 00-6-2.21m0 0a9.094 9.094 0 01-3.741.479 3 3 0 014.682 2.72m-.94-3.198l-.001-.031c0-.225.012-.447.037-.666A11.944 11.944 0 0012 3c-2.17 0-4.207-.576-5.963 1.584A9.06 9.06 0 006 6.281m0 0a9.06 9.06 0 006 2.21m-6-2.21a9.06 9.06 0 016-2.21m0 0a9.094 9.094 0 003.741-.479 3 3 0 00-4.682 2.72m.94-3.198l.001-.031c0-.225.012-.447.037-.666A11.944 11.944 0 0112 3z" /></svg>`,
+                        description: "Futuro ligado à inclusão, equidade e bem-estar coletivo.",
+                        ods: [1, 2, 10],
+                        questions: [
+                            { 
+                                q: "O município mantém atualizado o Cadastro Único das famílias?",
+                                note: "Nota máxima (D): O CadÚnico é 100% digital, atualizado em tempo real (via app) e usado ativamente para análise preditiva de quais famílias estão *entrando* na linha da pobreza, permitindo ação preventiva.",
+                                options: [
+                                    { text: "Não.", value: 1 },
+                                    { text: "Atualiza parcialmente.", value: 2 },
+                                    { text: "Atualiza regularmente.", value: 3 },
+                                    { text: "Mantém 100% atualizado com análise preditiva de vulnerabilidades.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "Qual o alcance do Programa Bolsa Família no município?",
+                                note: "Nota máxima (D): A cidade não apenas repassa o benefício, mas atua ativamente nas 'portas de saída', com políticas complementares de emprego, creche e capacitação para dar autonomia às famílias.",
+                                options: [
+                                    { text: "Não atinge todas as famílias elegíveis.", value: 1 },
+                                    { text: "Atende parcialmente.", value: 2 },
+                                    { text: "Atende integralmente.", value: 3 },
+                                    { text: "Atende e atua preventivamente com políticas complementares.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "Há políticas municipais de redução da pobreza e vulnerabilidade?",
+                                note: "Nota máxima (D): As políticas são integradas (ODS 1) e usam 'mapas de vulnerabilidade' para focar recursos em microterritórios, com metas claras de redução da desigualdade.",
+                                options: [
+                                    { text: "Não.", value: 1 },
+                                    { text: "Pouco estruturadas.", value: 2 },
+                                    { text: "Integradas com programas estaduais/federais.", value: 3 },
+                                    { text: "Planejadas com base em dados e metas ODS.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "Como a cidade atua na inclusão produtiva e capacitação social?",
+                                note: "Nota máxima (D): A cidade possui um 'ecossistema de desenvolvimento humano', com bancos comunitários, moedas sociais, cooperativas de crédito e 'escolas de ofício' voltadas à economia verde e digital.",
+                                options: [
+                                    { text: "Não atua.", value: 1 },
+                                    { text: "Ações pontuais.", value: 2 },
+                                    { text: "Programas contínuos.", value: 3 },
+                                    { text: "Ecossistema articulado de desenvolvimento humano.", value: 4 }
+                                ]
+                            },
+                            { 
+                                q: "Como é avaliado o bem-estar social da população?",
+                                note: "Nota máxima (D): A cidade usa indicadores de 'Felicidade Interna Bruta' (FIB) e 'escuta ativa' (via apps, sensores) para monitorar o bem-estar e a qualidade de vida nos bairros em tempo real.",
+                                options: [
+                                    { text: "Não há métricas.", value: 1 },
+                                    { text: "Pesquisas esporádicas.", value: 2 },
+                                    { text: "Indicadores municipais básicos.", value: 3 },
+                                    { text: "Sistema permanente de monitoramento e escuta ativa da população.", value: 4 }
+                                ]
+                            }
+                        ]
+                    }
+                };
+
+                // Inicializa os estados de resposta
+                Object.keys(this.data).forEach(axisId => {
+                    this.state.scores[axisId] = 0;
+                    this.state.answers[axisId] = {};
+                    this.data[axisId].questions.forEach((q, index) => {
+                        // Inicia como null para sabermos que não foi respondido
+                        this.state.answers[axisId][index] = null; 
+                    });
+                });
+            },
+            
+            // Inicialização da Aplicação
+            init: function() {
+                if (this.state.isInitialized) return; // Previne re-inicialização
+                
+                this.setupData();
+                this.renderSidebarButtons();
+                this.renderSidebarResults();
+                this.selectPage(this.state.currentPage); // Carrega a primeira página
+                
+                this.state.isInitialized = true;
+            },
+
+            // Renderiza os botões dos eixos na Sidebar
+            renderSidebarButtons: function() {
+                const container = document.getElementById('sidebar-buttons');
+                container.innerHTML = '';
+                Object.keys(this.data).forEach(key => {
+                    const axis = this.data[key];
+                    
+                    // Contagem de respostas
+                    const total = axis.questions.length;
+                    const answered = Object.values(this.state.answers[key]).filter(v => v !== null).length;
+                    const isComplete = total === answered;
+                    const progress = total > 0 ? (answered / total) * 100 : 0;
+
+                    const button = document.createElement('button');
+                    button.id = `btn-${key}`;
+                    button.className = `w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center justify-between ${key === this.state.currentPage ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`;
+                    button.onclick = () => this.selectPage(key);
+                    
+                    button.innerHTML = `
+                        <div class="flex items-center space-x-3">
+                            ${axis.icon.replace('w-8 h-8', 'w-6 h-6').replace('text-green-400', 'text-green-500').replace('text-orange-400', 'text-orange-500').replace('text-purple-400', 'text-purple-500').replace('text-yellow-400', 'text-yellow-500').replace('text-blue-400', 'text-blue-500').replace('text-red-400', 'text-red-500').replace('text-yellow-600', 'text-yellow-600')}
+                            <span class="font-medium">${axis.label}</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs ${key === this.state.currentPage ? 'text-white/70' : 'text-gray-400'}">${answered}/${total}</span>
+                            ${isComplete ? 
+                                `<svg class="w-5 h-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>` : 
+                                `<svg class="w-5 h-5 ${key === this.state.currentPage ? 'text-white/50' : 'text-gray-600'}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z" clip-rule="evenodd" /></svg>`
+                            }
+                        </div>
+                    `;
+                    container.appendChild(button);
+                });
+            },
+            
+            // Renderiza os botões de Radar e Análise na Sidebar
+            renderSidebarResults: function() {
+                const container = document.getElementById('sidebar-results');
+                container.innerHTML = `
+                    <button id="btn-radar" class="w-full text-left px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-700 flex items-center space-x-3" onclick="window.app.selectPage('radar')">
+                        <svg class="w-6 h-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5" /></svg>
+                        <span class="font-medium">Radar de Futuros</span>
+                    </button>
+                    <button id="btn-analysis" class="w-full text-left px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-700 flex items-center space-x-3" onclick="window.app.selectPage('analysis')">
+                        <svg class="w-6 h-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" /></svg>
+                        <span class="font-medium">Análise Estratégica</span>
+                    </button>
+                `;
+            },
+            
+            // Lógica para trocar a "página" de conteúdo
+            selectPage: function(pageId) {
+                this.state.currentPage = pageId;
+                
+                // Esconde todas as seções de conteúdo
+                document.getElementById('intro-container').classList.add('hidden');
+                document.getElementById('questions-container').classList.add('hidden');
+                document.getElementById('chart-container').classList.add('hidden');
+                document.getElementById('analysis-report').classList.add('hidden');
+                
+                // Desativa todos os botões da sidebar
+                document.querySelectorAll('#sidebar button').forEach(btn => {
+                    btn.classList.remove('bg-indigo-600', 'text-white');
+                    if (!btn.id.includes('radar') && !btn.id.includes('analysis')) {
+                        btn.classList.add('text-gray-300', 'hover:bg-gray-700');
+                    }
+                });
+                
+                // Ativa o botão da página selecionada
+                const activeButton = document.getElementById(`btn-${pageId}`);
+                if (activeButton) {
+                    activeButton.classList.add('bg-indigo-600', 'text-white');
+                    activeButton.classList.remove('text-gray-300', 'hover:bg-gray-700');
+                }
+                
+                // Lógica de exibição da página
+                if (this.data[pageId]) {
+                    // É uma página de Eixo (Perguntas)
+                    this.renderQuestions(pageId);
+                    this.renderHeader(pageId);
+                    this.renderSdgPills(pageId);
+                    document.getElementById('questions-container').classList.remove('hidden');
+                    
+                    // Mostra a introdução SE for a primeira página (ambiental)
+                    if (pageId === 'ambiental') {
+                        document.getElementById('intro-container').classList.remove('hidden');
+                    }
+                    
+                    // Rola para o topo (para a primeira pergunta)
+                    document.getElementById('main-content-area').scrollTo({ top: 0, behavior: 'smooth' });
+
+                } else if (pageId === 'radar') {
+                    // É a página do Radar
+                    this.renderHeader(pageId);
+                    this.renderSdgPills(pageId); // Limpa as pílulas
+                    document.getElementById('chart-container').classList.remove('hidden');
+                    this.initRadarChart(); // (Re)Inicia o gráfico com dados atuais
+                
+                } else if (pageId === 'analysis') {
+                    // É a página de Análise
+                    this.renderHeader(pageId);
+                    this.renderSdgPills(pageId); // Limpa as pílulas
+                    this.generateAnalysis(); // Gera a análise
+                    document.getElementById('analysis-report').classList.remove('hidden');
+                }
+            },
+            
+            // Renderiza o Header da página selecionada
+            renderHeader: function(pageId) {
+                const container = document.getElementById('header-content');
+                let html = '';
+                
+                if (this.data[pageId]) {
+                    const axis = this.data[pageId];
+                    html = `
+                        ${axis.icon}
+                        <div>
+                            <h2 class="text-2xl font-bold text-white">${axis.label}</h2>
+                            <p class="text-sm text-gray-400">${axis.description}</p>
+                        </div>
+                    `;
+                } else if (pageId === 'radar') {
+                    html = `
+                        <svg class="w-8 h-8 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5" /></svg>
+                        <div>
+                            <h2 class="text-2xl font-bold text-white">Radar de Futuros Prováveis</h2>
+                            <p class="text-sm text-gray-400">Projeção dos horizontes de 5, 10 e 20 anos.</p>
+                        </div>
+                    `;
+                } else if (pageId === 'analysis') {
+                     html = `
+                        <svg class="w-8 h-8 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" /></svg>
+                        <div>
+                            <h2 class="text-2xl font-bold text-white">Análise Estratégica</h2>
+                            <p class="text-sm text-gray-400">Relatório de Gaps, Matriz de Ação e Recomendações.</p>
+                        </div>
+                    `;
+                }
+                container.innerHTML = html;
+            },
+            
+            // Renderiza as pílulas ODS no Header
+            renderSdgPills: function(pageId) {
+                const container = document.getElementById('sdg-pills');
+                container.innerHTML = '';
+                
+                if (this.data[pageId] && this.data[pageId].ods) {
+                    this.data[pageId].ods.forEach(odsId => {
+                        container.innerHTML += `
+                            <div class="sdg-container" title="${this.odsNames[odsId] || ''}">
+                                <span class="sdg-pill sdg-${odsId}">${odsId}</span>
+                                <span class="sdg-name">${this.odsNames[odsId] || ''}</span>
+                            </div>
+                        `;
+                    });
+                }
+            },
+
+            // Renderiza as perguntas de um eixo
+            renderQuestions: function(axisId) {
+                const axis = this.data[axisId];
+                const container = document.getElementById('questions-container');
+                container.innerHTML = ''; // Limpa as perguntas anteriores
+                
+                axis.questions.forEach((q, index) => {
+                    const questionId = `q-${axisId}-${index}`;
+                    const answeredValue = this.state.answers[axisId][index];
+                    
+                    let optionsHtml = q.options.map((opt, optIndex) => {
+                        const optionId = `opt-${axisId}-${index}-${optIndex}`;
+                        const isChecked = answeredValue === opt.value;
+                        
+                        return `
+                            <div class="radio-option">
+                                <input type="radio" 
+                                       id="${optionId}" 
+                                       name="${questionId}" 
+                                       value="${opt.value}"
+                                       ${isChecked ? 'checked' : ''}
+                                       onchange="window.app.handleAnswerChange('${axisId}', ${index}, ${opt.value})">
+                                <label for="${optionId}" 
+                                       class="block w-full p-4 border-2 border-gray-600 rounded-lg ${isChecked ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'}">
+                                    ${opt.text}
+                                </label>
+                            </div>
+                        `;
+                    }).join('');
+
+                    container.innerHTML += `
+                        <div class="bg-gray-800 rounded-lg shadow-xl p-6 transition-all duration-300" id="question-${axisId}-${index}">
+                            <h3 class="text-lg font-semibold text-white mb-2">${q.q}</h3>
+                            
+                            <!-- Nota Explicativa -->
+                            <div class="bg-gray-900/50 border-l-4 border-indigo-400 text-indigo-100 p-3 rounded-r-lg mb-4 text-sm italic">
+                                ${q.note}
+                            </div>
+                            
+                            <div class="space-y-3 mt-4">
+                                ${optionsHtml}
+                            </div>
+                        </div>
+                    `;
+                });
+            },
+            
+            // Lida com a mudança de resposta
+            handleAnswerChange: function(axisId, questionIndex, value) {
+                // 1. Salva a resposta e o score
+                this.state.answers[axisId][questionIndex] = value;
+                this.updateScores();
+                
+                // 2. Atualiza a sidebar (progresso)
+                this.renderSidebarButtons();
+                
+                // 3. Verifica se o eixo atual está completo
+                const axis = this.data[axisId];
+                const total = axis.questions.length;
+                const answered = Object.values(this.state.answers[axisId]).filter(v => v !== null).length;
+                const isComplete = total === answered;
+                
+                // 4. Lógica de Auto-Avanço e Auto-Scroll
+                const axisKeys = Object.keys(this.data);
+                const currentAxisIndex = axisKeys.indexOf(axisId);
+                
+                if (isComplete) {
+                    // Eixo está completo
+                    const nextAxisIndex = currentAxisIndex + 1;
+                    if (nextAxisIndex < axisKeys.length) {
+                        // Avança para o próximo eixo
+                        const nextAxisId = axisKeys[nextAxisIndex];
+                        this.selectPage(nextAxisId);
+                    } else {
+                        // Todos os eixos estão completos, avança para a Análise
+                        this.selectPage('analysis');
+                    }
+                } else {
+                    // Eixo não está completo, rola para a próxima pergunta
+                    const nextQuestionElement = document.getElementById(`question-${axisId}-${questionIndex + 1}`);
+                    if (nextQuestionElement) {
+                        nextQuestionElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            },
+
+            // (Re)Calcula o score médio de todos os eixos
+            updateScores: function() {
+                Object.keys(this.data).forEach(axisId => {
+                    const answers = Object.values(this.state.answers[axisId]);
+                    const validAnswers = answers.filter(val => val !== null && val > 0); // Ignora nulos e perguntas de valor 0
+                    
+                    if (validAnswers.length > 0) {
+                        const sum = validAnswers.reduce((acc, val) => acc + val, 0);
+                        this.state.scores[axisId] = sum / validAnswers.length;
+                    } else {
+                        this.state.scores[axisId] = 0; // Ou 1, se preferir um score base
+                    }
+                });
+                
+                // Atualiza o gráfico de radar principal se ele estiver visível
+                if (this.state.currentPage === 'radar') {
+                    this.updateRadarChart();
+                }
+            },
+            
+            // Projeta o score futuro
+            projectScore: function(baseScore, years) {
+                // Fórmula de projeção (Exponencial simples)
+                // Se a nota for baixa (<= 2.5), a inércia puxa para baixo (ou cresce pouco).
+                // Se a nota for alta (> 2.5), o "momentum" acelera o crescimento.
+                
+                // Taxa base de crescimento/decaimento
+                // (score - 2.5) -> Se score=4, taxa=1.5. Se score=1, taxa=-1.5
+                const growthFactor = (baseScore - 2.5);
+                
+                // Fator de tempo (0.05 = 5% ao ano, ajuste conforme necessário)
+                const timeFactor = 0.05 * years;
+                
+                // Projeção: Score * (1 + (FatorCrescimento * FatorTempo))
+                let projected = baseScore * (1 + (growthFactor * timeFactor));
+                
+                // Clampa o valor entre 1 e 4
+                return Math.max(1, Math.min(4, projected));
+            },
+
+            // Prepara os datasets para o gráfico de radar principal
+            getProjectedDatasets: function() {
+                const labels = Object.values(this.data).map(axis => axis.label);
+                const nowData = [];
+                const y5Data = [];
+                const y10Data = [];
+                const y20Data = [];
+
+                for (const axisId in this.data) {
+                    const baseScore = this.state.scores[axisId];
+                    nowData.push(baseScore);
+                    y5Data.push(this.projectScore(baseScore, 5));
+                    y10Data.push(this.projectScore(baseScore, 10));
+                    y20Data.push(this.projectScore(baseScore, 20));
+                }
+
+                const datasets = [
+                    {
+                        label: 'Cenário Atual',
+                        data: nowData,
+                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                        borderColor: 'rgba(255, 255, 255, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(255, 255, 255, 1)',
+                    }
+                ];
+
+                if (this.state.showProjections.y5) {
+                    datasets.push({
+                        label: 'Futuro +5 Anos',
+                        data: y5Data,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(75, 192, 192, 1)',
+                        hidden: false
+                    });
+                }
+                if (this.state.showProjections.y10) {
+                     datasets.push({
+                        label: 'Futuro +10 Anos',
+                        data: y10Data,
+                        backgroundColor: 'rgba(255, 205, 86, 0.2)',
+                        borderColor: 'rgba(255, 205, 86, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(255, 205, 86, 1)',
+                        hidden: false
+                    });
+                }
+                if (this.state.showProjections.y20) {
+                    datasets.push({
+                        label: 'Futuro +20 Anos',
+                        data: y20Data,
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(255, 99, 132, 1)',
+                        hidden: false
+                    });
+                }
+                return datasets;
+            },
+            
+            // Inicializa o Gráfico Radar de Projeções (Página Radar)
+            initRadarChart: function() {
+                const ctx = document.getElementById('radarChart').getContext('2d');
+                if (this.state.chart) {
+                    this.state.chart.destroy(); // Destrói gráfico anterior se existir
+                }
+                
+                const labels = Object.values(this.data).map(axis => axis.label);
+
+                this.state.chart = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: labels,
+                        datasets: this.getProjectedDatasets()
+                    },
+                    options: {
+                        animation: true,
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: '#E5E7EB' // text-gray-200
+                                }
+                            }
+                        },
+                        scales: {
+                            r: {
+                                angleLines: {
+                                    color: 'rgba(255, 255, 255, 0.2)'
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.2)'
+                                },
+                                pointLabels: {
+                                    color: '#E5E7EB', // text-gray-200
+                                    font: {
+                                        size: 11,
+                                        weight: '500'
+                                    }
+                                },
+                                ticks: {
+                                    color: '#9CA3AF', // text-gray-400
+                                    backdropColor: 'rgba(0, 0, 0, 0.5)',
+                                    stepSize: 1,
+                                    font: {
+                                        size: 14
+                                    }
+                                },
+                                min: 1,
+                                max: 4
+                            }
+                        }
+                    }
+                });
+            },
+            
+            // Atualiza o gráfico de radar principal
+            updateRadarChart: function() {
+                if (this.state.chart) {
+                    this.state.chart.data.datasets = this.getProjectedDatasets();
+                    this.state.chart.update();
+                }
+            },
+            
+            // Controla a visibilidade das projeções no gráfico principal
+            toggleProjection: function(yearKey) {
+                this.state.showProjections[yearKey] = !this.state.showProjections[yearKey];
+                this.updateRadarChart();
+            },
+
+            // --- FUNÇÕES DE ANÁLISE ESTRATÉGICA ---
+            
+            /**
+             * [FUNÇÃO CORRIGIDA]
+             * Ponto de entrada principal para gerar todo o relatório de análise.
+             */
+            generateAnalysis: function() {
+                const reportContainer = document.getElementById('analysis-report');
+                reportContainer.innerHTML = ''; // Limpa o relatório anterior
+                reportContainer.classList.remove('hidden'); // Exibe o container
+
+                // --- NOVO: HTML da Logomarca para o PDF ---
+                const logoHtml = `
+                    <div class="bg-white p-4 rounded-lg flex justify-center mb-6 shadow">
+                        <img src="https://i.postimg.cc/Fs2X2yRr/logos-infografico.png" 
+                             alt="Logomarca Futuro das Cidades" 
+                             class="h-12"
+                             onerror="this.alt='Logomarca não carregada';">
+                    </div>
+                `;
+
+                let totalScore = 0;
+                let axisCount = 0;
+                for(const axisId in this.state.scores) {
+                    totalScore += this.state.scores[axisId];
+                    axisCount++;
+                }
+                const averageScore = totalScore / axisCount;
+
+                const overallFuture = this.getOverallFuture(averageScore);
+                const matrixHtml = this.generateMatrix(); 
+
+                // --- NOVO: HTML PARA O RADAR DE PROJEÇÕES (PRINCIPAL) ---
+                const projectionChartHtml = `
+                    <div>
+                        <h3 class="text-xl font-semibold text-white mt-8 mb-4">Radar de Futuros Prováveis (Projeção)</h3>
+                        <p class="text-gray-400 text-sm mb-4">
+                            O gráfico principal simula as trajetórias futuras (5, 10 e 20 anos) com base no diagnóstico atual, mostrando o impacto de longo prazo das ações.
+                        </p>
+                        <div class="bg-gray-900/50 p-4 rounded-lg shadow-inner">
+                            <div class="relative h-96 w-full">
+                                <canvas id="projectionRadarChartForReport"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // --- HTML PARA GRÁFICOS DE GAP E ESFORÇO ---
+                const chartsHtml = `
+                    <div>
+                        <h3 class="text-xl font-semibold text-white mt-8 mb-4">Análise de Gaps e Distribuição de Esforço</h3>
+                        <p class="text-gray-400 text-sm mb-4">
+                            Os gráficos abaixo detalham as lacunas (gaps) para atingir a maturidade 4.0 em cada eixo e distribuem o esforço necessário entre os atores (Poder Público vs. Comunidade).
+                        </p>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                            <!-- Gráfico 1: Radar de Gaps -->
+                            <div class="bg-gray-900/50 p-4 rounded-lg shadow-inner">
+                                <h4 class="text-lg font-semibold text-indigo-300 mb-2 text-center">Radar de Gaps vs. Maturidade 4.0</h4>
+                                <div class="relative h-80 w-full">
+                                    <canvas id="gapRadarChart"></canvas>
+                                </div>
+                            </div>
+                            
+                            <!-- Gráfico 2: Esforço -->
+                            <div class="bg-gray-900/50 p-4 rounded-lg shadow-inner">
+                                <h4 class="text-lg font-semibold text-indigo-300 mb-2 text-center">Distribuição do Esforço Necessário</h4>
+                                <div class="relative h-80 w-full flex items-center justify-center">
+                                    <canvas id="effortDoughnutChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // --- GERA OS INSIGHTS POR EIXO ---
+                const insightsList = Object.keys(this.data).map(axisId => {
+                    const score = this.state.scores[axisId];
+                    return this.getInterpretation(axisId, score);
+                }).join('');
+
+                // --- GERA OS BOTÕES DE AÇÃO ---
+                const buttonsHtml = `
+                    <div id="report-buttons" class="flex flex-col sm:flex-row gap-4 mt-12 pt-8 border-t border-gray-700">
+                        <button 
+                            onclick="window.app.generatePDF()"
+                            id="pdf-button"
+                            class="flex-1 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                            Gerar Relatório PDF
+                        </button>
+                        <button 
+                            onclick="window.app.startNewAnalysis()"
+                            class="flex-1 px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-lg hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.183m0-4.991v4.99" /></svg>
+                            Iniciar Nova Análise
+                        </button>
+                    </div>
+                `;
+
+                // Monta o HTML do relatório
+                reportContainer.innerHTML = `
+                    <!-- LOGOMARCA INSERIDA -->
+                    ${logoHtml}
+
+                    <h2 class="text-2xl font-bold text-indigo-300 mb-4">Análise Estratégica de Futuros</h2>
+                    
+                    ${overallFuture}
+                    
+                    <!-- RADAR DE PROJEÇÕES INSERIDO -->
+                    ${projectionChartHtml}
+
+                    <!-- MATRIZ 2x2 INSERIDA AQUI -->
+                    <div>
+                        <h3 class="text-xl font-semibold text-white mt-8 mb-3">Matriz de Agência: Governo x Comunidade</h3>
+                        <p class="text-gray-400 text-sm mb-4">Esta matriz analisa o "quem" da transformação. Ela posiciona o futuro provável com base na capacidade de ação do Poder Público (Eixo Y) versus o nível de engajamento e organização da Comunidade (Eixo X).</p>
+                        ${matrixHtml}
+                    </div>
+
+                    <!-- GRÁFICOS DE GAP E ESFORÇO INSERIDOS -->
+                    ${chartsHtml}
+
+                    <div>
+                        <h3 class="text-xl font-semibold text-white mt-8 mb-3">Insights Estratégicos por Eixo</h3>
+                        <p class="text-gray-400 text-sm mb-4">Análise detalhada por eixo, separando os desafios e oportunidades entre o Poder Público (ações estruturantes) e a Comunidade (engajamento social).</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                            ${insightsList}
+                        </div>
+                    </div>
+
+                    <!-- ADICIONA OS BOTÕES AO FINAL -->
+                    ${buttonsHtml}
+                `;
+
+                // --- INICIA TODOS OS GRÁFICOS DA ANÁLISE ---
+                this.initProjectionChartForReport(); // <-- NOVO
+                this.initGapChart();
+                this.initEffortChart();
+            },
+
+            /**
+             * Gera o texto de "Futuro Provável" (Análise Geral)
+             */
+            getOverallFuture: function(score) {
+                let title, description, horizon5, horizon10, horizon20;
+
+                if (score < 2.0) {
+                    title = "Futuro Provável: Inércia Crítica";
+                    description = "O diagnóstico aponta para um cenário de alta vulnerabilidade. A cidade demonstra baixa maturidade na maioria dos eixos, indicando uma trajetória de 'inércia crítica'. Sem intervenções profundas e imediatas, a tendência é a acentuação dos problemas estruturais, perda de competitividade econômica e aumento das desigualdades sociais e ambientais.";
+                    horizon5 = "Em 5 anos, os serviços públicos essenciais (saúde, educação, saneamento) podem entrar em colapso, com aumento da precarização e da vulnerabilidade social.";
+                    horizon10 = "Em 10 anos, a cidade enfrentará um esvaziamento econômico, com 'fuga de cérebros' e de empresas, tornando-se dependente de repasses externos e com baixa qualidade de vida.";
+                    horizon20 = "Em 20 anos, o cenário é de estagnação e obsolescência, com infraestrutura degradada e graves crises socioambientais, exigindo um esforço de reconstrução muito maior.";
+                } else if (score < 3.0) {
+                    title = "Futuro Provável: Transformação em Andamento";
+                    description = "O diagnóstico revela um cenário de transição. Existem 'ilhas de excelência' e sinais claros de avanço em alguns eixos, mas que ainda não se conectam para formar um sistema robusto. A cidade está em um ponto de inflexão: se acelerar as ações estruturantes, pode saltar para um futuro próspero; se recuar, corre o risco de estagnar.";
+                    horizon5 = "Em 5 anos, a cidade viverá uma dualidade, com melhorias visíveis em áreas que receberam foco (ex: digitalização, parques), mas com gargalos persistentes em outras (ex: saneamento, educação).";
+                    horizon10 = "Em 10 anos, se o caminho da transformação for mantido, a cidade começará a colher frutos em qualidade de vida e atração de investimentos, mas ainda lidará com desigualdades territoriais.";
+                    horizon20 = "Em 20 anos, a cidade pode se consolidar como um polo de desenvolvimento, mas dependerá da capacidade de integrar as políticas de longo prazo (governança, infraestrutura) com as demandas sociais (educação, saúde).";
+                } else {
+                    title = "Futuro Provável: Maturidade Sistêmica";
+                    description = "O diagnóstico aponta para um alto nível de maturidade e integração entre os eixos. A cidade demonstra ter uma visão de futuro clara, com políticas públicas baseadas em dados, forte engajamento comunitário e foco em inovação e sustentabilidade. O desafio aqui não é 'consertar', mas 'antecipar': manter a vanguarda e a resiliência diante de novas disrupções.";
+                    horizon5 = "Em 5 anos, a cidade será referência (benchmark) em gestão, usando IA para otimizar serviços e focando em hiper-personalização do atendimento ao cidadão (saúde preditiva, educação adaptativa).";
+                    horizon10 = "Em 10 anos, a economia será baseada em conhecimento e sustentabilidade (economia verde, circular), com infraestrutura 100% resiliente e conectada, e altíssima qualidade de vida.";
+                    horizon20 = "Em 20 anos, a cidade funcionará como um 'organismo' adaptativo, capaz de se antecipar a crises climáticas, econômicas e sociais, exportando suas soluções e talentos para o mundo.";
+                }
+
+                return `
+                    <div class="bg-gray-900/50 p-6 rounded-lg shadow-inner">
+                        <h3 class="text-xl font-semibold text-white mb-3">${title}</h3>
+                        <p class="text-gray-300 mb-4">${description}</p>
+                        <div class="border-l-4 border-indigo-400 pl-4 space-y-2 text-sm">
+                            <p><strong class="text-indigo-300">Em 5 anos:</strong> ${horizon5}</p>
+                            <p><strong class="text-indigo-300">Em 10 anos:</strong> ${horizon10}</p>
+                            <p><strong class="text-indigo-300">Em 20 anos:</strong> ${horizon20}</p>
+                        </div>
+                    </div>
+                `;
+            },
+
+            /**
+             * Gera os insights por eixo, separando por Poder Público e Comunidade
+             */
+            getInterpretation: function(axisId, score) {
+                const axis = this.data[axisId];
+                let status, statusColor;
+                let insightGov = '', insightComm = '';
+
+                if (score < 2.0) {
+                    status = "Nível Crítico";
+                    statusColor = "text-red-400";
+                } else if (score < 3.0) {
+                    status = "Em Desenvolvimento";
+                    statusColor = "text-yellow-400";
+                } else {
+                    status = "Nível Maduro";
+                    statusColor = "text-green-400";
+                }
+
+                // Textos de análise personalizados por eixo
+                switch (axisId) {
+                    case 'ambiental':
+                        insightGov = "Ações estruturantes são urgentes: Plano Diretor de Resíduos Sólidos, fiscalização rigorosa do desmatamento e investimento em saneamento básico.";
+                        insightComm = "A comunidade precisa ser ativada: Programas de educação ambiental, criação de cooperativas de reciclagem e engajamento na proteção de áreas verdes.";
+                        break;
+                    case 'economia':
+                        insightGov = "Desafio de diversificar a receita: Criar políticas de incentivo a novos setores (ex: tecnologia, turismo), desburocratizar a abertura de empresas e otimizar gastos.";
+                        insightComm = "Oportunidade de fomentar o empreendedorismo local: Capacitação profissional (cursos técnicos) e fortalecimento de arranjos produtivos locais (APLs) e da economia criativa.";
+                        break;
+                    case 'educacao':
+                        insightGov = "Foco na infraestrutura e qualidade: Garantir 100% de conectividade nas escolas, implementar formação continuada de docentes e usar dados (IDEB) para gestão pedagógica.";
+                        insightComm = "Engajamento na jornada do aluno: A comunidade (pais, associações de bairro) deve participar ativamente da 'busca ativa' contra o abandono escolar e da gestão democrática das escolas.";
+                        break;
+                    case 'governanca':
+                        insightGov = "Urgência em modernizar e ser transparente: Digitalizar 100% dos serviços, implementar gestão de desempenho para servidores e abrir todos os dados (Orçamento, Contratos) em painéis acessíveis.";
+                        insightComm = "Ocupar os espaços de controle social: A sociedade civil precisa se fortalecer para usar os dados abertos, participar de conselhos e audiências públicas, e co-criar soluções (GovTech).";
+                        break;
+                    case 'infraestrutura':
+                        insightGov = "Investimento pesado em resiliência e conectividade: Universalizar água e esgoto (meta 100%), criar um plano de infraestrutura verde (anti-enchente) e expandir fibra óptica para periferias.";
+                        insightComm = "Adoção e zelo pela infraestrutura: A comunidade deve ser guardiã dos espaços públicos (parques, praças) e adotar soluções de micro-drenagem (cisternas, jardins de chuva).";
+                        break;
+                    case 'saude':
+                        insightGov = "Mudar o foco da 'doença' para a 'prevenção': Investir na digitalização (prontuário único, telemedicina) e fortalecer a Atenção Básica (Saúde da Família) para cobrir 100% do território.";
+                        insightComm = "Agente ativo de saúde: Engajamento total em campanhas de vacinação, combate a vetores (dengue) e promoção de saúde mental e bem-estar nos bairros (grupos de esporte, etc).";
+                        break;
+                    case 'socioeconomico':
+                        insightGov = "Usar dados para precisão: Manter o CadÚnico 100% atualizado e usá-lo para criar políticas preditivas de vulnerabilidade, integrando com programas de inclusão produtiva (emprego).";
+                        insightComm = "Construção de redes de solidariedade: Fortalecer a economia solidária (bancos comunitários, cooperativas) e apoiar a capacitação social e profissional nas comunidades.";
+                        break;
+                }
+                
+                // Mapeia a cor do eixo para o card
+                const borderColor = axis.color.replace('border-', 'border-t-4 border-');
+                
+                return `
+                    <div class_="${borderColor} bg-gray-900/50 rounded-lg shadow-lg p-5 flex flex-col space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-lg font-bold ${axis.color.replace('border-', 'text-')
+                                .replace('-500', '-400')}">${axis.label}</span>
+                            <span class_="font-semibold px-3 py-1 rounded-full text-xs ${statusColor.replace('text-', 'bg-').replace('-400', '-500/20')} ${statusColor}">
+                                ${status} (Nota: ${score.toFixed(1)})
+                            </span>
+                        </div>
+                        
+                        <div class="text-sm">
+                            <strong class="text-red-400 block mb-1">🔴 Poder Público (Desafios):</strong>
+                            <p class="text-gray-300 pl-2 border-l-2 border-red-500/50">${insightGov}</p>
+                        </div>
+                        <div class="text-sm">
+                            <strong class="text-blue-400 block mb-1">🔵 Comunidade (Oportunidades):</strong>
+                            <p class="text-gray-300 pl-2 border-l-2 border-blue-500/50">${insightComm}</p>
+                        </div>
+                    </div>
+                `;
+            },
+
+            /**
+             * [NOVA FUNÇÃO]
+             * Prepara os datasets ESTÁTICOS para o gráfico de projeção do relatório.
+             */
+            getProjectedDatasetsForReport: function() {
+                const labels = Object.values(this.data).map(axis => axis.label);
+                const nowData = [];
+                const y5Data = [];
+                const y10Data = [];
+                const y20Data = [];
+
+                for (const axisId in this.data) {
+                    const baseScore = this.state.scores[axisId];
+                    nowData.push(baseScore);
+                    y5Data.push(this.projectScore(baseScore, 5));
+                    y10Data.push(this.projectScore(baseScore, 10));
+                    y20Data.push(this.projectScore(baseScore, 20));
+                }
+
+                return [
+                    {
+                        label: 'Cenário Atual',
+                        data: nowData,
+                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                        borderColor: 'rgba(255, 255, 255, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(255, 255, 255, 1)',
+                    },
+                    {
+                        label: 'Futuro +5 Anos',
+                        data: y5Data,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(75, 192, 192, 1)',
+                    },
+                    {
+                        label: 'Futuro +10 Anos',
+                        data: y10Data,
+                        backgroundColor: 'rgba(255, 205, 86, 0.2)',
+                        borderColor: 'rgba(255, 205, 86, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(255, 205, 86, 1)',
+                    },
+                    {
+                        label: 'Futuro +20 Anos',
+                        data: y20Data,
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(255, 99, 132, 1)',
+                    }
+                ];
+            },
+            
+            /**
+             * [NOVA FUNÇÃO]
+             * Inicializa o Gráfico Radar de Projeções na página de Análise.
+             */
+            initProjectionChartForReport: function() {
+                const ctx = document.getElementById('projectionRadarChartForReport')?.getContext('2d');
+                if (!ctx) return; 
+
+                if (this.state.chartProjectionReportInstance) {
+                    this.state.chartProjectionReportInstance.destroy(); 
+                }
+
+                const labels = Object.values(this.data).map(axis => axis.label);
+
+                this.state.chartProjectionReportInstance = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: labels,
+                        datasets: this.getProjectedDatasetsForReport() // Usa a nova função
+                    },
+                    options: {
+                        animation: false, // <-- IMPORTANTE: Desabilita animação para o PDF
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: '#E5E7EB' // text-gray-200
+                                }
+                            }
+                        },
+                        scales: {
+                            r: {
+                                angleLines: {
+                                    color: 'rgba(255, 255, 255, 0.2)'
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.2)'
+                                },
+                                pointLabels: {
+                                    color: '#E5E7EB', // text-gray-200
+                                    font: {
+                                        size: 10, // Menor para caber
+                                        weight: '500'
+                                    }
+                                },
+                                ticks: {
+                                    color: '#9CA3AF', // text-gray-400
+                                    backdropColor: 'rgba(0, 0, 0, 0.5)',
+                                    stepSize: 1,
+                                    font: {
+                                        size: 12
+                                    }
+                                },
+                                min: 1,
+                                max: 4
+                            }
+                        }
+                    }
+                });
+            },
+
+            /**
+             * [ATUALIZADO]
+             * Inicializa o Gráfico Radar de Gaps na página de Análise.
+             */
+            initGapChart: function() {
+                const ctx = document.getElementById('gapRadarChart')?.getContext('2d');
+                if (!ctx) return; // Sai se o canvas não existir
+
+                if (this.state.chartGapInstance) {
+                    this.state.chartGapInstance.destroy(); // Destrói o anterior
+                }
+                
+                const labels = Object.values(this.data).map(axis => axis.label);
+                const currentData = Object.keys(this.data).map(axisId => this.state.scores[axisId]);
+                const targetData = labels.map(() => 4.0); // Meta de maturidade
+
+                this.state.chartGapInstance = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Cenário Atual',
+                                data: currentData,
+                                backgroundColor: 'rgba(129, 140, 248, 0.2)', // indigo-400
+                                borderColor: 'rgba(129, 140, 248, 1)',
+                                borderWidth: 2,
+                            },
+                            {
+                                label: 'Meta 4.0',
+                                data: targetData,
+                                backgroundColor: 'rgba(96, 165, 250, 0.1)', // blue-400
+                                borderColor: 'rgba(96, 165, 250, 1)',
+                                borderWidth: 1,
+                                borderDash: [5, 5]
+                            }
+                        ]
+                    },
+                    options: {
+                        animation: false, // <-- IMPORTANTE: Desabilita animação para o PDF
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: '#E5E7EB' } }
+                        },
+                        scales: {
+                            r: {
+                                angleLines: { color: 'rgba(255, 255, 255, 0.2)' },
+                                grid: { color: 'rgba(255, 255, 255, 0.2)' },
+                                pointLabels: { color: '#E5E7EB', font: { size: 10 } },
+                                ticks: { 
+                                    color: '#9CA3AF', 
+                                    backdropColor: 'rgba(0, 0, 0, 0.5)', 
+                                    stepSize: 1,
+                                    font: { size: 12 }
+                                },
+                                min: 1,
+                                max: 4
+                            }
+                        }
+                    }
+                });
+            },
+            
+            /**
+             * [ATUALIZADO]
+             * Inicializa o Gráfico de Rosca de Distribuição de Esforço.
+             */
+            initEffortChart: function() {
+                const ctx = document.getElementById('effortDoughnutChart')?.getContext('2d');
+                if (!ctx) return;
+
+                if (this.state.chartEffortInstance) {
+                    this.state.chartEffortInstance.destroy();
+                }
+
+                const gaps = this.calculateGaps();
+                const totalGap = gaps.gov + gaps.comm;
+                const govPercent = totalGap > 0 ? (gaps.gov / totalGap) * 100 : 50;
+                const commPercent = totalGap > 0 ? (gaps.comm / totalGap) * 100 : 50;
+
+                this.state.chartEffortInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Poder Público', 'Comunidade'],
+                        datasets: [{
+                            data: [govPercent, commPercent],
+                            backgroundColor: [
+                                'rgba(248, 113, 113, 0.7)', // red-400
+                                'rgba(96, 165, 250, 0.7)'  // blue-400
+                            ],
+                            borderColor: [
+                                '#1F2937' // bg-gray-800
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        animation: false, // <-- IMPORTANTE: Desabilita animação para o PDF
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '60%',
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#E5E7EB', font: { size: 14 } }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.label}: ${context.raw.toFixed(1)}%`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            },
+
+            // Calcula os gaps de esforço para Poder Público vs Comunidade
+            calculateGaps: function() {
+                const scores = this.state.scores;
+                const govAxes = ['governanca', 'infraestrutura', 'economia'];
+                const commAxes = ['socioeconomico', 'educacao', 'saude', 'ambiental'];
+                let govGap = 0;
+                let commGap = 0;
+
+                govAxes.forEach(axis => {
+                    govGap += (4.0 - scores[axis]);
+                });
+                commAxes.forEach(axis => {
+                    commGap += (4.0 - scores[axis]);
+                });
+
+                return { gov: Math.max(0, govGap), comm: Math.max(0, commGap) };
+            },
+
+            // Gera o HTML da Matriz 2x2
+            generateMatrix: function() {
+                const scores = this.state.scores;
+                
+                const govAxes = ['governanca', 'infraestrutura', 'economia'];
+                const commAxes = ['socioeconomico', 'educacao', 'saude', 'ambiental'];
+                
+                let govScoreSum = 0;
+                govAxes.forEach(axis => { govScoreSum += scores[axis]; });
+                const govScore = govScoreSum / govAxes.length; // Eixo Y (1 a 4)
+
+                let commScoreSum = 0;
+                commAxes.forEach(axis => { commScoreSum += scores[axis]; });
+                const commScore = commScoreSum / commAxes.length; // Eixo X (1 a 4)
+
+                // Define os quadrantes
+                const q1Active = (govScore >= 2.5 && commScore < 2.5);  // Top-Left: Domínio Governamental
+                const q2Active = (govScore >= 2.5 && commScore >= 2.5); // Top-Right: Sinergia Ideal
+                const q3Active = (govScore < 2.5 && commScore < 2.5);   // Bottom-Left: Vácuo de Ação
+                const q4Active = (govScore < 2.5 && commScore >= 2.5);  // Bottom-Right: Ativismo Comunitário
+
+                return `
+                    <div class="matrix-container">
+                        <!-- Y Labels -->
+                        <span class="matrix-label matrix-label-y" style="grid-row: 1 / 2;">ALTA AÇÃO</span>
+                        <span class="matrix-label matrix-label-y" style="grid-row: 2 / 3;">BAIXA AÇÃO</span>
+                        
+                        <!-- Y Axis Title -->
+                        <span class="matrix-label matrix-label-y" style="grid-row: 1 / 3;">PODER PÚBLICO</span>
+
+                        <!-- Quadrantes (Linha 1) -->
+                        <div class="matrix-quadrant ${q1Active ? 'active' : 'inactive'}">
+                            <h4>Domínio Governamental</h4>
+                            <p>O governo lidera, mas a comunidade está desengajada. Risco de políticas "de cima para baixo" sem adesão social.</p>
+                        </div>
+                        <div class="matrix-quadrant ${q2Active ? 'active' : 'inactive'}">
+                            <h4>Sinergia Ideal (Futuro)</h4>
+                            <p>Governo e comunidade atuam em alta performance e colaboração. É o quadrante da inovação cívica e da resiliência.</p>
+                        </div>
+                        
+                        <!-- Quadrantes (Linha 2) -->
+                        <div class="matrix-quadrant ${q3Active ? 'active' : 'inactive'}">
+                            <h4>Vácuo de Ação</h4>
+                            <p>Baixa performance de ambos. Cenário de estagnação, onde nem o governo entrega, nem a comunidade se organiza.</p>
+                        </div>
+                        <div class="matrix-quadrant ${q4Active ? 'active' : 'inactive'}">
+                            <h4>Ativismo Comunitário</h4>
+                            <p>A comunidade se organiza para suprir as falhas do governo. Risco de sobrecarga da sociedade civil e falta de escala.</p>
+                        </div>
+                        
+                        <!-- X Labels -->
+                        <span class="matrix-label"></span> <!-- Canto vazio -->
+                        <span class="matrix-label matrix-label-x">BAIXO ENGAJAMENTO</span>
+                        <span class="matrix-label matrix-label-x">ALTO ENGAJAMENTO</span>
+                        <span class="matrix-label"></span> <!-- Canto vazio -->
+                        <span class="matrix-label matrix-label-x" style="grid-column: 2 / 4;">COMUNIDADE</span>
+                    </div>
+                `;
+            },
+            
+            // Inicia uma nova análise (reseta o app)
+            startNewAnalysis: function() {
+                // Reseta o estado
+                this.setupData();
+                
+                // Reseta os gráficos (destrói instâncias)
+                if (this.state.chart) this.state.chart.destroy();
+                if (this.state.chartGapInstance) this.state.chartGapInstance.destroy();
+                if (this.state.chartEffortInstance) this.state.chartEffortInstance.destroy();
+                if (this.state.chartProjectionReportInstance) this.state.chartProjectionReportInstance.destroy();
+                
+                this.state.chart = null;
+                this.state.chartGapInstance = null;
+                this.state.chartEffortInstance = null;
+                this.state.chartProjectionReportInstance = null;
+
+                // Renderiza a sidebar
+                this.renderSidebarButtons();
+                
+                // Volta para a página inicial (ambiental)
+                this.selectPage('ambiental');
+            },
+            
+            // Gera o PDF
+            generatePDF: function() {
+                const reportElement = document.getElementById('analysis-report');
+                const buttonContainer = document.getElementById('report-buttons'); // ID do container dos botões
+                const pdfButton = document.getElementById('pdf-button');
+                
+                pdfButton.textContent = "Gerando PDF, aguarde...";
+                pdfButton.disabled = true;
+                
+                // Esconde os botões do relatório antes de "printar"
+                if (buttonContainer) buttonContainer.style.display = 'none';
+                
+                // Garante que os gráficos sejam renderizados sem animação
+                // (Já configurado nas options, mas forçar um update pode ajudar)
+                if (this.state.chartProjectionReportInstance) this.state.chartProjectionReportInstance.update();
+                if (this.state.chartGapInstance) this.state.chartGapInstance.update();
+                if (this.state.chartEffortInstance) this.state.chartEffortInstance.update();
+
+
+                html2canvas(reportElement, {
+                    scale: 2, // Aumenta a resolução da captura
+                    backgroundColor: '#1f2937', // bg-gray-800
+                    onclone: (clonedDoc) => {
+                        // Garante que o container da análise esteja visível no clone
+                        clonedDoc.getElementById('analysis-report').style.display = 'block';
+                    },
+                    useCORS: true // Para o caso de imagens externas
+                }).then(canvas => {
+                    const imgData = canvas.toDataURL('image/png');
+                    const { jsPDF } = window.jspdf;
+                    
+                    // Configuração do PDF em A4 (210mm de largura)
+                    const pdfWidth = 210; 
+                    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+                    
+                    const pdf = new jsPDF({
+                        orientation: 'p',
+                        unit: 'mm',
+                        format: 'a4'
+                    });
+
+                    // Adiciona uma pequena margem
+                    const margin = 5;
+                    const pdfWidthWithMargin = pdfWidth - (margin * 2);
+                    const pdfHeightWithMargin = (canvas.height * pdfWidthWithMargin) / canvas.width;
+
+                    pdf.addImage(imgData, 'PNG', margin, margin, pdfWidthWithMargin, pdfHeightWithMargin);
+                    
+                    // Lógica de múltiplas páginas se o conteúdo for muito alto
+                    let heightLeft = pdfHeightWithMargin;
+                    let position = 0;
+                    const pageHeight = 297 - (margin * 2); // Altura A4 - margens
+
+                    heightLeft -= pageHeight;
+                    position -= pageHeight; // Prepara para a próxima página
+
+                    while (heightLeft > 0) {
+                        pdf.addPage();
+                        pdf.addImage(imgData, 'PNG', margin, position + margin, pdfWidthWithMargin, pdfHeightWithMargin);
+                        heightLeft -= pageHeight;
+                        position -= pageHeight;
+                    }
+
+                    pdf.save('Relatorio_Foresight_Cidades.pdf');
+                    
+                    // Mostra os botões novamente
+                    if (buttonContainer) buttonContainer.style.display = 'flex';
+                    pdfButton.textContent = "Gerar Relatório PDF";
+                    pdfButton.disabled = false;
+                    
+                }).catch(err => {
+                    console.error("Erro ao gerar PDF:", err);
+                    // Mostra os botões novamente em caso de erro
+                    if (buttonContainer) buttonContainer.style.display = 'flex';
+                    pdfButton.textContent = "Erro ao gerar PDF";
+                    pdfButton.disabled = false;
+                });
+            },
+
+
+        };
+
+        // Inicializa a aplicação quando o DOM estiver pronto
+        document.addEventListener('DOMContentLoaded', () => {
+            window.app.init();
+        });
+    </script>
+</body>
+</html>
