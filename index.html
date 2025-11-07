@@ -2,7 +2,7 @@
 <html lang="pt-br" class="h-full">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale-1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Foresight Cidades - Radar de Futuros</title>
     <!-- Carrega Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -42,7 +42,7 @@
             flex-direction: column;
             align-items: center;
             text-align: center;
-            width: 6rem; /* w-24 */
+            width: 5rem; /* w-20 (Reduzido para mobile) */
         }
         .sdg-pill {
             display: inline-flex;
@@ -64,36 +64,7 @@
             margin-top: 0.25rem; /* mt-1 */
         }
         
-        /* --- NOVOS ESTILOS PARA A MATRIZ 2x2 --- */
-        .matrix-container {
-            display: grid;
-            grid-template-columns: auto 1fr 1fr;
-            grid-template-rows: 1fr 1fr auto; /* Ajustado para X-labels no fundo */
-            gap: 0.5rem;
-            align-items: stretch;
-            background-color: #1F2937; /* bg-gray-800 */
-            padding: 1rem;
-            border-radius: 0.5rem; /* rounded-lg */
-        }
-        .matrix-label {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            font-size: 0.75rem; /* text-xs */
-            font-weight: 600; /* font-semibold */
-            color: #D1D5DB; /* text-gray-300 */
-        }
-        .matrix-label-y {
-            writing-mode: vertical-rl;
-            transform: rotate(180deg);
-            padding: 0.5rem 0.25rem;
-            letter-spacing: 0.05em;
-        }
-        .matrix-label-x {
-            padding: 0.25rem 0.5rem;
-            letter-spacing: 0.05em;
-        }
+        /* --- ESTILOS DA MATRIZ 2x2 (NÃO RESPONSIVOS) --- */
         .matrix-quadrant {
             padding: 1rem;
             border-radius: 0.5rem; /* rounded-lg */
@@ -126,6 +97,55 @@
             font-size: 0.75rem; /* text-xs */
             line-height: 1.4;
         }
+        
+        /* --- NOVOS ESTILOS RESPONSIVOS PARA A MATRIZ --- */
+        /* Mobile-first: stack everything */
+        .matrix-container-responsive {
+            display: grid;
+            grid-template-columns: 1fr; /* Stacks all children */
+            gap: 1rem;
+            background-color: #1F2937; /* bg-gray-800 */
+            padding: 1rem;
+            border-radius: 0.5rem; /* rounded-lg */
+        }
+        .matrix-container-responsive .matrix-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 0.75rem; /* text-xs */
+            font-weight: 600; /* font-semibold */
+            color: #D1D5DB; /* text-gray-300 */
+        }
+        .matrix-container-responsive .matrix-label-y {
+            writing-mode: horizontal-tb; /* Horizontal no mobile */
+            transform: none;
+            text-align: center;
+            background-color: #374151; /* bg-gray-700 */
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+        }
+        .matrix-container-responsive .matrix-label-x {
+            text-align: center;
+            padding: 0.25rem 0.5rem;
+            letter-spacing: 0.05em;
+        }
+        
+        /* Desktop layout (md breakpoint) */
+        @media (min-width: 768px) {
+            .matrix-container-responsive {
+                /* Re-apply user's original styles */
+                grid-template-columns: auto 1fr 1fr;
+                grid-template-rows: 1fr 1fr auto;
+                gap: 0.5rem;
+            }
+            .matrix-container-responsive .matrix-label-y {
+                writing-mode: vertical-rl; /* Vertical no desktop */
+                transform: rotate(180deg);
+                background-color: transparent;
+                padding: 0.5rem 0.25rem;
+            }
+        }
         /* --- FIM DOS ESTILOS DA MATRIZ --- */
 
         /* Cores dos ODS */
@@ -150,8 +170,15 @@
 </head>
 <body class="h-full bg-gray-900 text-gray-100 flex flex-col antialiased">
 
-    <!-- Novo Cabeçalho com Logomarca -->
-    <header class="w-full bg-white p-2 shadow-md z-10 flex-shrink-0 flex justify-center">
+    <!-- Novo Cabeçalho com Logomarca e Botão Menu -->
+    <header class="w-full bg-white p-2 shadow-md z-10 flex-shrink-0 flex justify-center items-center relative">
+        <!-- Botão Hamburger (Mobile) -->
+        <button id="menu-toggle" class="md:hidden absolute left-4 p-2 text-gray-700" onclick="window.app.toggleSidebar()">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+        </button>
+        
         <img src="https://i.postimg.cc/Fs2X2yRr/logos-infografico.png" 
              alt="Logomarca Futuro das Cidades" 
              class="h-10"
@@ -159,10 +186,17 @@
     </header>
     
     <!-- Wrapper para o layout principal (Sidebar + Main) -->
-    <div class="flex flex-1 overflow-hidden">
+    <div class="flex flex-1 overflow-hidden relative">
 
-    <!-- Sidebar de Navegação dos Eixos -->
-    <nav class="w-72 h-full bg-gray-800 shadow-lg p-5 flex flex-col flex-shrink-0" id="sidebar">
+    <!-- Overlay (Mobile) -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-20 md:hidden hidden" onclick="window.app.toggleSidebar()"></div>
+
+    <!-- Sidebar de Navegação dos Eixos (Agora Responsiva) -->
+    <nav class="fixed inset-y-0 left-0 z-30 w-72 h-full bg-gray-800 shadow-lg p-5 flex flex-col
+                transition-transform duration-300 transform -translate-x-full 
+                md:relative md:translate-x-0 md:flex-shrink-0" 
+         id="sidebar">
+        
         <div class="flex items-center space-x-3 mb-8">
             <svg class="w-10 h-10 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639l4.25-1.063a1.012 1.012 0 011.012.215l1.091 1.091a1.012 1.012 0 001.414 0l1.091-1.091a1.012 1.012 0 011.012-.215l4.25 1.063a1.012 1.012 0 010 .639l-4.25 1.063a1.012 1.012 0 01-1.012-.215l-1.091-1.091a1.012 1.012 0 00-1.414 0l-1.091 1.091a1.012 1.012 0 01-1.012.215l-4.25-1.063z" />
@@ -190,17 +224,18 @@
     <main class="flex-1 h-full flex flex-col overflow-hidden">
         
         <!-- Header da Página Selecionada -->
-        <header class="bg-gray-800/50 backdrop-blur-sm border-b border-gray-700 p-6 flex justify-between items-start">
+        <header class="bg-gray-800/50 backdrop-blur-sm border-b border-gray-700 p-4 md:p-6 flex justify-between items-start">
             <div id="header-content" class="flex items-center space-x-4">
                 <!-- Conteúdo do Header injetado aqui -->
             </div>
-            <div id="sdg-pills" class="flex items-start space-x-2">
+            <!-- Container ODS Responsivo -->
+            <div id="sdg-pills" class="flex flex-wrap items-start justify-end gap-2 max-w-xs md:max-w-sm">
                 <!-- Pílulas ODS injetadas aqui -->
             </div>
         </header>
 
         <!-- Área de Conteúdo (Paginada) -->
-        <div class="flex-1 overflow-y-auto p-8 scroll-smooth" id="main-content-area">
+        <div class="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth" id="main-content-area">
             
             <!-- Página: Introdução (NOVO) -->
             <section id="intro-container" class="space-y-4 hidden text-gray-200 max-w-4xl">
@@ -229,7 +264,7 @@
             </section>
             
             <!-- Página: Gráfico Radar (Container) -->
-            <section id="chart-container" class="bg-gray-800 rounded-lg shadow-2xl p-6 flex flex-col hidden h-full">
+            <section id="chart-container" class="bg-gray-800 rounded-lg shadow-2xl p-4 md:p-6 flex flex-col hidden h-full">
                 <h2 class="text-xl font-bold text-white mb-4">Radar de Futuros Prováveis</h2>
                 <p class="text-sm text-gray-400 mb-4">O gráfico simula o futuro provável com base na inércia (notas baixas) ou momentum (notas altas) das respostas atuais.</p>
                 
@@ -250,13 +285,13 @@
                 </div>
                 
                 <!-- Canvas do Gráfico -->
-                <div class="relative flex-1" style="min-height: 500px;">
+                <div class="relative flex-1" style="min-height: 400px; max-height: 60vh;">
                     <canvas id="radarChart"></canvas>
                 </div>
             </section>
             
             <!-- Página: Análise Estratégica (Container) -->
-            <section id="analysis-report" class="bg-gray-800 rounded-lg shadow-xl p-6 hidden space-y-8">
+            <section id="analysis-report" class="bg-gray-800 rounded-lg shadow-xl p-4 md:p-6 hidden space-y-8">
                 <!-- Análise será injetada aqui -->
             </section>
 
@@ -273,22 +308,22 @@
             // Mapeamento de Nomes ODS
             odsNames: {
                 1: "Erradicação da Pobreza",
-                2: "Fome Zero e Agricultura Sustentável",
+                2: "Fome Zero", // Reduzido
                 3: "Saúde e Bem-Estar",
                 4: "Educação de Qualidade",
                 5: "Igualdade de Gênero",
                 6: "Água Potável e Saneamento",
-                7: "Energia Limpa e Acessível",
-                8: "Trabalho Decente e Crescimento Econômico",
-                9: "Indústria, Inovação e Infraestrutura",
+                7: "Energia Limpa", // Reduzido
+                8: "Trabalho Decente", // Reduzido
+                9: "Inovação e Infra.", // Reduzido
                 10: "Redução das Desigualdades",
-                11: "Cidades e Comunidades Sustentáveis",
-                12: "Consumo e Produção Responsáveis",
-                13: "Ação Contra a Mudança Global do Clima",
+                11: "Cidades Sustentáveis", // Reduzido
+                12: "Consumo Responsável", // Reduzido
+                13: "Ação Climática", // Reduzido
                 14: "Vida na Água",
                 15: "Vida Terrestre",
-                16: "Paz, Justiça e Instituições Eficazes",
-                17: "Parcerias e Meios de Implementação"
+                16: "Paz e Justiça", // Reduzido
+                17: "Parcerias" // Reduzido
             },
             
             state: {
@@ -298,7 +333,7 @@
                 chart: null,
                 chartGapInstance: null, 
                 chartEffortInstance: null, 
-                chartProjectionReportInstance: null, // <-- NOVO: Referência para o gráfico no relatório
+                chartProjectionReportInstance: null,
                 showProjections: {
                     y5: true,
                     y10: true,
@@ -315,7 +350,7 @@
                         label: 'Ambiental',
                         color: 'border-green-500', // Verde
                         icon: `<svg class="w-8 h-8 text-green-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c1.354 0 2.664-.343 3.861-.976M12 21c-1.354 0-2.664-.343-3.861-.976m14.322-9.488c.28.28.55.582.797.901M2.879 11.522c.28.28.55.582.797.901m17.54-.622c.623 1.954.945 4.028.945 6.147C21 18.613 16.97 22.5 12 22.5S3 18.613 3 13.647c0-2.119.322-4.193.945-6.147M12 3c-1.354 0-2.664.343-3.861.976M12 3c1.354 0 2.664.343 3.861.976m-7.722 1.462c-.28-.28-.55-.582-.797-.901M21.121 4.522c-.28-.28-.55-.582-.797-.901M12 9a3 3 0 100-6 3 3 0 000 6z" /></svg>`,
-                        description: "Futuro ligado à sustentabilidade, gestão de resíduos e equilíbrio ecológico.",
+                        description: "Sustentabilidade, resíduos e equilíbrio ecológico.",
                         ods: [6, 11, 12, 13, 15],
                         questions: [
                             { 
@@ -375,7 +410,7 @@
                         label: 'Economia',
                         color: 'border-orange-500', // Laranja
                         icon: `<svg class="w-8 h-8 text-orange-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.75A.75.75 0 013 4.5h.75m0 0v.75A.75.75 0 013 6h-.75m0 0H2.25m1.5.75H3.75m0 0H2.25m1.5 0H3.75m0 0H2.25m1.5 0H3.75M6 6v.75A.75.75 0 015.25 7.5h-.75m0 0v-.75A.75.75 0 015.25 6h.75m0 0v.75A.75.75 0 015.25 7.5h-.75m0 0H4.5m1.5.75H6m0 0H4.5m1.5 0H6m0 0H4.5m1.5 0H6m0 0H4.5m1.5 0H6m2.25-1.5v.75A.75.75 0 017.5 7.5h-.75m0 0v-.75A.75.75 0 017.5 6h.75m0 0v.75A.75.75 0 017.5 7.5h-.75m0 0H6.75m1.5.75H8.25m0 0H6.75m1.5 0H8.25m0 0H6.75m1.5 0H8.25m0 0H6.75m1.5 0H8.25M10.5 6v.75A.75.75 0 019.75 7.5h-.75m0 0v-.75A.75.75 0 019.75 6h.75m0 0v.75A.75.75 0 019.75 7.5h-.75m0 0H9m1.5.75H10.5m0 0H9m1.5 0H10.5m0 0H9m1.5 0H10.5m0 0H9m1.5 0H10.5m7.5-1.5v.75A.75.75 0 0117.25 7.5h-.75m0 0v-.75A.75.75 0 0117.25 6h.75m0 0v.75A.75.75 0 0117.25 7.5h-.75m0 0H16.5m1.5.75H18m0 0H16.5m1.5 0H18m0 0H16.5m1.5 0H18m0 0H16.5m1.5 0H18m2.25-1.5v.75A.75.75 0 0119.5 7.5h-.75m0 0v-.75A.75.75 0 0119.5 6h.75m0 0v.75A.75.75 0 0119.5 7.5h-.75m0 0H18.75m1.5.75H20.25m0 0H18.75m1.5 0H20.25m0 0H18.75m1.5 0H20.25m0 0H18.75m1.5 0H20.25m0 0h-.75A.75.75 0 0118.75 6v-.75m0 0h.75A.75.75 0 0120.25 6v.75m0 0H18.75m1.5 0H20.25m0 0H18.75m1.5 0H20.25m0 0H18.75m1.5 0H20.25m0 0H18.75M12 12.75a.75.75 0 01.75-.75h.01a.75.75 0 01.75.75v.01a.75.75 0 01-.75.75h-.01a.75.75 0 01-.75-.75v-.01zM15 12.75a.75.75 0 01.75-.75h.01a.75.75 0 01.75.75v.01a.75.75 0 01-.75.75h-.01a.75.75 0 01-.75-.75v-.01zM18 12.75a.75.75 0 01.75-.75h.01a.75.75 0 01.75.75v.01a.75.75 0 01-.75.75h-.01a.75.75 0 01-.75-.75v-.01zM12 15.75a.75.75 0 01.75-.75h.01a.75.75 0 01.75.75v.01a.75.75 0 01-.75.75h-.01a.75.75 0 01-.75-.75v-.01zM15 15.75a.75.75 0 01.75-.75h.01a.75.75 0 01.75.75v.01a.75.75 0 01-.75.75h-.01a.75.75 0 01-.75-.75v-.01zM18 15.75a.75.75 0 01.75-.75h.01a.75.75 0 01.75.75v.01a.75.75 0 01-.75.75h-.01a.75.75 0 01-.75-.75v-.01zM12 18.75a.75.75 0 01.75-.75h.01a.75.75 0 01.75.75v.01a.75.75 0 01-.75.75h-.01a.75.75 0 01-.75-.75v-.01zM15 18.75a.75.75 0 01.75-.75h.01a.75.75 0 01.75.75v.01a.75.75 0 01-.75.75h-.01a.75.75 0 01-.75-.75v-.01zM18 18.75a.75.75 0 01.75-.75h.01a.75.75 0 01.75.75v.01a.75.75 0 01-.75.75h-.01a.75.75 0 01-.75-.75v-.01z" /></svg>`,
-                        description: "Futuro voltado à autonomia financeira, produtividade e inovação econômica.",
+                        description: "Autonomia financeira, produtividade e inovação.",
                         ods: [8, 9, 12],
                         questions: [
                             { 
@@ -449,7 +484,7 @@
                         label: 'Educação',
                         color: 'border-purple-500', // Roxo
                         icon: `<svg class="w-8 h-8 text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18c-2.305 0-4.408.867-6 2.292m0-14.25v14.25" /></svg>`,
-                        description: "Futuro ligado à equidade, aprendizagem significativa e inclusão digital.",
+                        description: "Equidade, aprendizagem e inclusão digital.",
                         ods: [4, 10],
                         questions: [
                             { 
@@ -509,7 +544,7 @@
                         label: 'Governança',
                         color: 'border-yellow-500', // Amarelo
                         icon: `<svg class="w-8 h-8 text-yellow-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h12M3.75 3v-1.5A.75.75 0 014.5 0h15a.75.75 0 01.75.75V15a.75.75 0 01-.75.75h-4.5M3.75 3h15M12 19.5h.008v.008H12v-.008zM12 16.5h.008v.008H12v-.008zM12 13.5h.008v.008H12v-.008zM12 10.5h.008v.008H12v-.008zM12 7.5h.008v.008H12V7.5zM15 19.5h.008v.008H15v-.008zM15 16.5h.008v.008H15v-.008zM15 13.5h.008v.008H15v-.008zM15 10.5h.008v.008H15v-.008zM15 7.5h.008v.008H15V7.5zM18 19.5h.008v.008H18v-.008zM18 16.5h.008v.008H18v-.008zM18 13.5h.008v.008H18v-.008zM18 10.5h.008v.008H18v-.008zM18 7.5h.008v.008H18V7.5z" /></svg>`,
-                        description: "Futuro ligado à transparência, eficiência e gestão pública inteligente.",
+                        description: "Transparência, eficiência e gestão inteligente.",
                         ods: [16, 17],
                         questions: [
                             { 
@@ -569,7 +604,7 @@
                         label: 'Infraestrutura',
                         color: 'border-blue-500', // Azul
                         icon: `<svg class="w-8 h-8 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m-6.75-13.5v13.5m-3.75-13.5v13.5m10.5-13.5v13.5m6.75-13.5v13.5m-3.75-13.5v13.5m0-13.5h-13.5m13.5 0h-13.5" /></svg>`,
-                        description: "Futuro ligado à conectividade, saneamento e resiliência urbana.",
+                        description: "Conectividade, saneamento e resiliência urbana.",
                         ods: [6, 9, 11],
                         questions: [
                             { 
@@ -629,7 +664,7 @@
                         label: 'Saúde',
                         color: 'border-red-500', // Vermelho
                         icon: `<svg class="w-8 h-8 text-red-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" /></svg>`,
-                        description: "Futuro ligado à qualidade de vida, prevenção e cobertura integral.",
+                        description: "Qualidade de vida, prevenção e cobertura integral.",
                         ods: [3, 5],
                         questions: [
                             { 
@@ -689,7 +724,7 @@
                         label: 'Socioeconômico',
                         color: 'border-brown-500', // Marrom/Amarelo-escuro
                         icon: `<svg class="w-8 h-8 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A9.06 9.06 0 016 18.719m12 0a9.06 9.06 0 00-6-2.21m6 2.21a9.06 9.06 0 01-6 2.21m-6-2.21a9.06 9.06 0 01-6-2.21m6 2.21a9.06 9.06 0 00-6 2.21m6-2.21c-2.17 0-4.207.576-5.963 1.584A9.06 9.06 0 016 18.719m0 0a9.094 9.094 0 01-3.741-.479 3 3 0 014.682-2.72m-.94 3.198l-.001.031c0 .225.012.447.037.666A11.944 11.944 0 0012 21c2.17 0 4.207-.576 5.963-1.584A9.06 9.06 0 0018 18.719m-6 2.21a9.06 9.06 0 01-6-2.21m6 2.21a9.06 9.06 0 00-6-2.21m6 2.21a9.06 9.06 0 016-2.21m-6 2.21a9.06 9.06 0 006-2.21m0 0a9.094 9.094 0 003.741.479 3 3 0 00-4.682 2.72m.94-3.198l.001-.031c0-.225.012-.447.037-.666A11.944 11.944 0 0112 3c2.17 0 4.207.576 5.963 1.584A9.06 9.06 0 0118 6.281m0 0a9.06 9.06 0 00-6 2.21m6-2.21a9.06 9.06 0 01-6 2.21m-6-2.21a9.06 9.06 0 01-6-2.21m6 2.21a9.06 9.06 0 00-6-2.21m0 0a9.094 9.094 0 01-3.741.479 3 3 0 014.682 2.72m-.94-3.198l-.001-.031c0-.225.012-.447.037-.666A11.944 11.944 0 0012 3c-2.17 0-4.207-.576-5.963 1.584A9.06 9.06 0 006 6.281m0 0a9.06 9.06 0 006 2.21m-6-2.21a9.06 9.06 0 016-2.21m0 0a9.094 9.094 0 003.741-.479 3 3 0 00-4.682 2.72m.94-3.198l.001-.031c0-.225.012-.447.037-.666A11.944 11.944 0 0112 3z" /></svg>`,
-                        description: "Futuro ligado à inclusão, equidade e bem-estar coletivo.",
+                        description: "Inclusão, equidade e bem-estar coletivo.",
                         ods: [1, 2, 10],
                         questions: [
                             { 
@@ -769,6 +804,17 @@
                 this.state.isInitialized = true;
             },
 
+            /**
+             * [NOVA FUNÇÃO]
+             * Controla a visibilidade da sidebar e do overlay no mobile.
+             */
+            toggleSidebar: function() {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebar-overlay');
+                sidebar.classList.toggle('-translate-x-full');
+                overlay.classList.toggle('hidden');
+            },
+
             // Renderiza os botões dos eixos na Sidebar
             renderSidebarButtons: function() {
                 const container = document.getElementById('sidebar-buttons');
@@ -819,7 +865,10 @@
                 `;
             },
             
-            // Lógica para trocar a "página" de conteúdo
+            /**
+             * Lógica para trocar a "página" de conteúdo.
+             * [ATUALIZADO] Adiciona fechamento da sidebar no mobile.
+             */
             selectPage: function(pageId) {
                 this.state.currentPage = pageId;
                 
@@ -852,12 +901,10 @@
                     this.renderSdgPills(pageId);
                     document.getElementById('questions-container').classList.remove('hidden');
                     
-                    // Mostra a introdução SE for a primeira página (ambiental)
                     if (pageId === 'ambiental') {
                         document.getElementById('intro-container').classList.remove('hidden');
                     }
                     
-                    // Rola para o topo (para a primeira pergunta)
                     document.getElementById('main-content-area').scrollTo({ top: 0, behavior: 'smooth' });
 
                 } else if (pageId === 'radar') {
@@ -865,7 +912,7 @@
                     this.renderHeader(pageId);
                     this.renderSdgPills(pageId); // Limpa as pílulas
                     document.getElementById('chart-container').classList.remove('hidden');
-                    this.initRadarChart(); // (Re)Inicia o gráfico com dados atuais
+                    this.initRadarChart(); 
                 
                 } else if (pageId === 'analysis') {
                     // É a página de Análise
@@ -873,6 +920,15 @@
                     this.renderSdgPills(pageId); // Limpa as pílulas
                     this.generateAnalysis(); // Gera a análise
                     document.getElementById('analysis-report').classList.remove('hidden');
+                }
+                
+                // --- NOVO: Fecha a sidebar no mobile ao selecionar ---
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebar-overlay');
+                // Verifica se o overlay está visível (indica modo mobile)
+                if (!overlay.classList.contains('hidden')) {
+                    sidebar.classList.add('-translate-x-full');
+                    overlay.classList.add('hidden');
                 }
             },
             
@@ -884,26 +940,27 @@
                 if (this.data[pageId]) {
                     const axis = this.data[pageId];
                     html = `
-                        ${axis.icon}
+                        ${axis.icon.replace('w-8 h-8', 'w-6 h-6 md:w-8 md:h-8')}
                         <div>
-                            <h2 class="text-2xl font-bold text-white">${axis.label}</h2>
-                            <p class="text-sm text-gray-400">${axis.description}</p>
+                            <h2 class="text-xl md:text-2xl font-bold text-white">${axis.label}</h2>
+                            <p class="text-sm text-gray-400 hidden md:block">${axis.description}</p>
+                            <p class="text-sm text-gray-400 md:hidden">${axis.description.split(',')[0]}.</p> <!-- Descrição curta para mobile -->
                         </div>
                     `;
                 } else if (pageId === 'radar') {
                     html = `
-                        <svg class="w-8 h-8 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5" /></svg>
+                        <svg class="w-6 h-6 md:w-8 md:h-8 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5" /></svg>
                         <div>
-                            <h2 class="text-2xl font-bold text-white">Radar de Futuros Prováveis</h2>
-                            <p class="text-sm text-gray-400">Projeção dos horizontes de 5, 10 e 20 anos.</p>
+                            <h2 class="text-xl md:text-2xl font-bold text-white">Radar de Futuros</h2>
+                            <p class="text-sm text-gray-400">Projeção dos horizontes.</p>
                         </div>
                     `;
                 } else if (pageId === 'analysis') {
                      html = `
-                        <svg class="w-8 h-8 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" /></svg>
+                        <svg class="w-6 h-6 md:w-8 md:h-8 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" /></svg>
                         <div>
-                            <h2 class="text-2xl font-bold text-white">Análise Estratégica</h2>
-                            <p class="text-sm text-gray-400">Relatório de Gaps, Matriz de Ação e Recomendações.</p>
+                            <h2 class="text-xl md:text-2xl font-bold text-white">Análise Estratégica</h2>
+                            <p class="text-sm text-gray-400">Relatório de Gaps e Ações.</p>
                         </div>
                     `;
                 }
@@ -958,7 +1015,7 @@
                     }).join('');
 
                     container.innerHTML += `
-                        <div class="bg-gray-800 rounded-lg shadow-xl p-6 transition-all duration-300" id="question-${axisId}-${index}">
+                        <div class="bg-gray-800 rounded-lg shadow-xl p-4 md:p-6 transition-all duration-300" id="question-${axisId}-${index}">
                             <h3 class="text-lg font-semibold text-white mb-2">${q.q}</h3>
                             
                             <!-- Nota Explicativa -->
@@ -1023,11 +1080,10 @@
                         const sum = validAnswers.reduce((acc, val) => acc + val, 0);
                         this.state.scores[axisId] = sum / validAnswers.length;
                     } else {
-                        this.state.scores[axisId] = 0; // Ou 1, se preferir um score base
+                        this.state.scores[axisId] = 0; 
                     }
                 });
                 
-                // Atualiza o gráfico de radar principal se ele estiver visível
                 if (this.state.currentPage === 'radar') {
                     this.updateRadarChart();
                 }
@@ -1035,21 +1091,9 @@
             
             // Projeta o score futuro
             projectScore: function(baseScore, years) {
-                // Fórmula de projeção (Exponencial simples)
-                // Se a nota for baixa (<= 2.5), a inércia puxa para baixo (ou cresce pouco).
-                // Se a nota for alta (> 2.5), o "momentum" acelera o crescimento.
-                
-                // Taxa base de crescimento/decaimento
-                // (score - 2.5) -> Se score=4, taxa=1.5. Se score=1, taxa=-1.5
                 const growthFactor = (baseScore - 2.5);
-                
-                // Fator de tempo (0.05 = 5% ao ano, ajuste conforme necessário)
                 const timeFactor = 0.05 * years;
-                
-                // Projeção: Score * (1 + (FatorCrescimento * FatorTempo))
                 let projected = baseScore * (1 + (growthFactor * timeFactor));
-                
-                // Clampa o valor entre 1 e 4
                 return Math.max(1, Math.min(4, projected));
             },
 
@@ -1120,7 +1164,7 @@
             initRadarChart: function() {
                 const ctx = document.getElementById('radarChart').getContext('2d');
                 if (this.state.chart) {
-                    this.state.chart.destroy(); // Destrói gráfico anterior se existir
+                    this.state.chart.destroy(); 
                 }
                 
                 const labels = Object.values(this.data).map(axis => axis.label);
@@ -1153,7 +1197,7 @@
                                 pointLabels: {
                                     color: '#E5E7EB', // text-gray-200
                                     font: {
-                                        size: 11,
+                                        size: window.innerWidth < 768 ? 9 : 11, // Fonte menor no mobile
                                         weight: '500'
                                     }
                                 },
@@ -1162,7 +1206,7 @@
                                     backdropColor: 'rgba(0, 0, 0, 0.5)',
                                     stepSize: 1,
                                     font: {
-                                        size: 14
+                                        size: window.innerWidth < 768 ? 10 : 14, // Fonte menor no mobile
                                     }
                                 },
                                 min: 1,
@@ -1189,16 +1233,11 @@
 
             // --- FUNÇÕES DE ANÁLISE ESTRATÉGICA ---
             
-            /**
-             * [FUNÇÃO CORRIGIDA]
-             * Ponto de entrada principal para gerar todo o relatório de análise.
-             */
             generateAnalysis: function() {
                 const reportContainer = document.getElementById('analysis-report');
-                reportContainer.innerHTML = ''; // Limpa o relatório anterior
-                reportContainer.classList.remove('hidden'); // Exibe o container
+                reportContainer.innerHTML = ''; 
+                reportContainer.classList.remove('hidden'); 
 
-                // --- NOVO: HTML da Logomarca para o PDF ---
                 const logoHtml = `
                     <div class="bg-white p-4 rounded-lg flex justify-center mb-6 shadow">
                         <img src="https://i.postimg.cc/Fs2X2yRr/logos-infografico.png" 
@@ -1219,7 +1258,6 @@
                 const overallFuture = this.getOverallFuture(averageScore);
                 const matrixHtml = this.generateMatrix(); 
 
-                // --- NOVO: HTML PARA O RADAR DE PROJEÇÕES (PRINCIPAL) ---
                 const projectionChartHtml = `
                     <div>
                         <h3 class="text-xl font-semibold text-white mt-8 mb-4">Radar de Futuros Prováveis (Projeção)</h3>
@@ -1234,13 +1272,13 @@
                     </div>
                 `;
 
-                // --- HTML PARA GRÁFICOS DE GAP E ESFORÇO ---
                 const chartsHtml = `
                     <div>
                         <h3 class="text-xl font-semibold text-white mt-8 mb-4">Análise de Gaps e Distribuição de Esforço</h3>
                         <p class="text-gray-400 text-sm mb-4">
                             Os gráficos abaixo detalham as lacunas (gaps) para atingir a maturidade 4.0 em cada eixo e distribuem o esforço necessário entre os atores (Poder Público vs. Comunidade).
                         </p>
+                        <!-- Grid responsivo: 1 coluna no mobile, 2 no desktop -->
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                             <!-- Gráfico 1: Radar de Gaps -->
                             <div class="bg-gray-900/50 p-4 rounded-lg shadow-inner">
@@ -1261,13 +1299,11 @@
                     </div>
                 `;
                 
-                // --- GERA OS INSIGHTS POR EIXO ---
                 const insightsList = Object.keys(this.data).map(axisId => {
                     const score = this.state.scores[axisId];
                     return this.getInterpretation(axisId, score);
                 }).join('');
 
-                // --- GERA OS BOTÕES DE AÇÃO ---
                 const buttonsHtml = `
                     <div id="report-buttons" class="flex flex-col sm:flex-row gap-4 mt-12 pt-8 border-t border-gray-700">
                         <button 
@@ -1286,49 +1322,33 @@
                     </div>
                 `;
 
-                // Monta o HTML do relatório
                 reportContainer.innerHTML = `
-                    <!-- LOGOMARCA INSERIDA -->
                     ${logoHtml}
-
                     <h2 class="text-2xl font-bold text-indigo-300 mb-4">Análise Estratégica de Futuros</h2>
-                    
                     ${overallFuture}
-                    
-                    <!-- RADAR DE PROJEÇÕES INSERIDO -->
                     ${projectionChartHtml}
-
-                    <!-- MATRIZ 2x2 INSERIDA AQUI -->
                     <div>
                         <h3 class="text-xl font-semibold text-white mt-8 mb-3">Matriz de Agência: Governo x Comunidade</h3>
                         <p class="text-gray-400 text-sm mb-4">Esta matriz analisa o "quem" da transformação. Ela posiciona o futuro provável com base na capacidade de ação do Poder Público (Eixo Y) versus o nível de engajamento e organização da Comunidade (Eixo X).</p>
                         ${matrixHtml}
                     </div>
-
-                    <!-- GRÁFICOS DE GAP E ESFORÇO INSERIDOS -->
                     ${chartsHtml}
-
                     <div>
                         <h3 class="text-xl font-semibold text-white mt-8 mb-3">Insights Estratégicos por Eixo</h3>
                         <p class="text-gray-400 text-sm mb-4">Análise detalhada por eixo, separando os desafios e oportunidades entre o Poder Público (ações estruturantes) e a Comunidade (engajamento social).</p>
+                        <!-- Grid responsivo: 1 coluna no mobile, 2 no desktop (md) -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                             ${insightsList}
                         </div>
                     </div>
-
-                    <!-- ADICIONA OS BOTÕES AO FINAL -->
                     ${buttonsHtml}
                 `;
 
-                // --- INICIA TODOS OS GRÁFICOS DA ANÁLISE ---
-                this.initProjectionChartForReport(); // <-- NOVO
+                this.initProjectionChartForReport(); 
                 this.initGapChart();
                 this.initEffortChart();
             },
 
-            /**
-             * Gera o texto de "Futuro Provável" (Análise Geral)
-             */
             getOverallFuture: function(score) {
                 let title, description, horizon5, horizon10, horizon20;
 
@@ -1336,7 +1356,7 @@
                     title = "Futuro Provável: Inércia Crítica";
                     description = "O diagnóstico aponta para um cenário de alta vulnerabilidade. A cidade demonstra baixa maturidade na maioria dos eixos, indicando uma trajetória de 'inércia crítica'. Sem intervenções profundas e imediatas, a tendência é a acentuação dos problemas estruturais, perda de competitividade econômica e aumento das desigualdades sociais e ambientais.";
                     horizon5 = "Em 5 anos, os serviços públicos essenciais (saúde, educação, saneamento) podem entrar em colapso, com aumento da precarização e da vulnerabilidade social.";
-                    horizon10 = "Em 10 anos, a cidade enfrentará um esvaziamento econômico, com 'fuga de cérebros' e de empresas, tornando-se dependente de repasses externos e com baixa qualidade de vida.";
+                    horizon10 = "Em 10 anos, a cidade enfrentará um esvaziamento econômico, com 'fuga de célebres' e de empresas, tornando-se dependente de repasses externos e com baixa qualidade de vida.";
                     horizon20 = "Em 20 anos, o cenário é de estagnação e obsolescência, com infraestrutura degradada e graves crises socioambientais, exigindo um esforço de reconstrução muito maior.";
                 } else if (score < 3.0) {
                     title = "Futuro Provável: Transformação em Andamento";
@@ -1353,7 +1373,7 @@
                 }
 
                 return `
-                    <div class="bg-gray-900/50 p-6 rounded-lg shadow-inner">
+                    <div class="bg-gray-900/50 p-4 md:p-6 rounded-lg shadow-inner">
                         <h3 class="text-xl font-semibold text-white mb-3">${title}</h3>
                         <p class="text-gray-300 mb-4">${description}</p>
                         <div class="border-l-4 border-indigo-400 pl-4 space-y-2 text-sm">
@@ -1365,9 +1385,6 @@
                 `;
             },
 
-            /**
-             * Gera os insights por eixo, separando por Poder Público e Comunidade
-             */
             getInterpretation: function(axisId, score) {
                 const axis = this.data[axisId];
                 let status, statusColor;
@@ -1416,15 +1433,14 @@
                         break;
                 }
                 
-                // Mapeia a cor do eixo para o card
                 const borderColor = axis.color.replace('border-', 'border-t-4 border-');
                 
                 return `
-                    <div class_="${borderColor} bg-gray-900/50 rounded-lg shadow-lg p-5 flex flex-col space-y-3">
+                    <div class="${borderColor} bg-gray-900/50 rounded-lg shadow-lg p-5 flex flex-col space-y-3">
                         <div class="flex justify-between items-center">
                             <span class="text-lg font-bold ${axis.color.replace('border-', 'text-')
                                 .replace('-500', '-400')}">${axis.label}</span>
-                            <span class_="font-semibold px-3 py-1 rounded-full text-xs ${statusColor.replace('text-', 'bg-').replace('-400', '-500/20')} ${statusColor}">
+                            <span class="font-semibold px-3 py-1 rounded-full text-xs ${statusColor.replace('text-', 'bg-').replace('-400', '-500/20')} ${statusColor}">
                                 ${status} (Nota: ${score.toFixed(1)})
                             </span>
                         </div>
@@ -1441,10 +1457,6 @@
                 `;
             },
 
-            /**
-             * [NOVA FUNÇÃO]
-             * Prepara os datasets ESTÁTICOS para o gráfico de projeção do relatório.
-             */
             getProjectedDatasetsForReport: function() {
                 const labels = Object.values(this.data).map(axis => axis.label);
                 const nowData = [];
@@ -1496,10 +1508,6 @@
                 ];
             },
             
-            /**
-             * [NOVA FUNÇÃO]
-             * Inicializa o Gráfico Radar de Projeções na página de Análise.
-             */
             initProjectionChartForReport: function() {
                 const ctx = document.getElementById('projectionRadarChartForReport')?.getContext('2d');
                 if (!ctx) return; 
@@ -1514,10 +1522,10 @@
                     type: 'radar',
                     data: {
                         labels: labels,
-                        datasets: this.getProjectedDatasetsForReport() // Usa a nova função
+                        datasets: this.getProjectedDatasetsForReport() 
                     },
                     options: {
-                        animation: false, // <-- IMPORTANTE: Desabilita animação para o PDF
+                        animation: false, 
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
@@ -1536,15 +1544,15 @@
                                     color: 'rgba(255, 255, 255, 0.2)'
                                 },
                                 pointLabels: {
-                                    color: '#E5E7EB', // text-gray-200
+                                    color: '#E5E7EB',
                                     font: {
-                                        size: 10, // Menor para caber
+                                        size: window.innerWidth < 768 ? 9 : 10, // Fonte menor
                                         weight: '500'
                                     }
                                 },
                                 ticks: {
-                                    color: '#9CA3AF', // text-gray-400
-                                    backdropColor: 'rgba(0, 0, 0, 0.5)',
+                                    color: '#9CA3AF', 
+                                    backdropColor: 'rgba(0, 0, 0, 0.5)', 
                                     stepSize: 1,
                                     font: {
                                         size: 12
@@ -1558,21 +1566,17 @@
                 });
             },
 
-            /**
-             * [ATUALIZADO]
-             * Inicializa o Gráfico Radar de Gaps na página de Análise.
-             */
             initGapChart: function() {
                 const ctx = document.getElementById('gapRadarChart')?.getContext('2d');
-                if (!ctx) return; // Sai se o canvas não existir
+                if (!ctx) return; 
 
                 if (this.state.chartGapInstance) {
-                    this.state.chartGapInstance.destroy(); // Destrói o anterior
+                    this.state.chartGapInstance.destroy(); 
                 }
                 
                 const labels = Object.values(this.data).map(axis => axis.label);
                 const currentData = Object.keys(this.data).map(axisId => this.state.scores[axisId]);
-                const targetData = labels.map(() => 4.0); // Meta de maturidade
+                const targetData = labels.map(() => 4.0); 
 
                 this.state.chartGapInstance = new Chart(ctx, {
                     type: 'radar',
@@ -1597,7 +1601,7 @@
                         ]
                     },
                     options: {
-                        animation: false, // <-- IMPORTANTE: Desabilita animação para o PDF
+                        animation: false, 
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
@@ -1607,7 +1611,12 @@
                             r: {
                                 angleLines: { color: 'rgba(255, 255, 255, 0.2)' },
                                 grid: { color: 'rgba(255, 255, 255, 0.2)' },
-                                pointLabels: { color: '#E5E7EB', font: { size: 10 } },
+                                pointLabels: { 
+                                    color: '#E5E7EB', 
+                                    font: { 
+                                        size: window.innerWidth < 768 ? 9 : 10 // Fonte menor
+                                    } 
+                                },
                                 ticks: { 
                                     color: '#9CA3AF', 
                                     backdropColor: 'rgba(0, 0, 0, 0.5)', 
@@ -1622,10 +1631,6 @@
                 });
             },
             
-            /**
-             * [ATUALIZADO]
-             * Inicializa o Gráfico de Rosca de Distribuição de Esforço.
-             */
             initEffortChart: function() {
                 const ctx = document.getElementById('effortDoughnutChart')?.getContext('2d');
                 if (!ctx) return;
@@ -1656,7 +1661,7 @@
                         }]
                     },
                     options: {
-                        animation: false, // <-- IMPORTANTE: Desabilita animação para o PDF
+                        animation: false, 
                         responsive: true,
                         maintainAspectRatio: false,
                         cutout: '60%',
@@ -1677,7 +1682,6 @@
                 });
             },
 
-            // Calcula os gaps de esforço para Poder Público vs Comunidade
             calculateGaps: function() {
                 const scores = this.state.scores;
                 const govAxes = ['governanca', 'infraestrutura', 'economia'];
@@ -1695,7 +1699,10 @@
                 return { gov: Math.max(0, govGap), comm: Math.max(0, commGap) };
             },
 
-            // Gera o HTML da Matriz 2x2
+            /**
+             * [ATUALIZADO]
+             * Gera o HTML da Matriz 2x2, agora com classes responsivas.
+             */
             generateMatrix: function() {
                 const scores = this.state.scores;
                 
@@ -1704,20 +1711,20 @@
                 
                 let govScoreSum = 0;
                 govAxes.forEach(axis => { govScoreSum += scores[axis]; });
-                const govScore = govScoreSum / govAxes.length; // Eixo Y (1 a 4)
+                const govScore = govScoreSum / govAxes.length; 
 
                 let commScoreSum = 0;
                 commAxes.forEach(axis => { commScoreSum += scores[axis]; });
-                const commScore = commScoreSum / commAxes.length; // Eixo X (1 a 4)
+                const commScore = commScoreSum / commAxes.length; 
 
-                // Define os quadrantes
                 const q1Active = (govScore >= 2.5 && commScore < 2.5);  // Top-Left: Domínio Governamental
                 const q2Active = (govScore >= 2.5 && commScore >= 2.5); // Top-Right: Sinergia Ideal
                 const q3Active = (govScore < 2.5 && commScore < 2.5);   // Bottom-Left: Vácuo de Ação
                 const q4Active = (govScore < 2.5 && commScore >= 2.5);  // Bottom-Right: Ativismo Comunitário
 
                 return `
-                    <div class="matrix-container">
+                    <!-- Container da Matriz agora usa a classe responsiva -->
+                    <div class="matrix-container-responsive">
                         <!-- Y Labels -->
                         <span class="matrix-label matrix-label-y" style="grid-row: 1 / 2;">ALTA AÇÃO</span>
                         <span class="matrix-label matrix-label-y" style="grid-row: 2 / 3;">BAIXA AÇÃO</span>
@@ -1757,10 +1764,8 @@
             
             // Inicia uma nova análise (reseta o app)
             startNewAnalysis: function() {
-                // Reseta o estado
                 this.setupData();
                 
-                // Reseta os gráficos (destrói instâncias)
                 if (this.state.chart) this.state.chart.destroy();
                 if (this.state.chartGapInstance) this.state.chartGapInstance.destroy();
                 if (this.state.chartEffortInstance) this.state.chartEffortInstance.destroy();
@@ -1771,45 +1776,32 @@
                 this.state.chartEffortInstance = null;
                 this.state.chartProjectionReportInstance = null;
 
-                // Renderiza a sidebar
                 this.renderSidebarButtons();
-                
-                // Volta para a página inicial (ambiental)
                 this.selectPage('ambiental');
             },
             
             // Gera o PDF
             generatePDF: function() {
                 const reportElement = document.getElementById('analysis-report');
-                const buttonContainer = document.getElementById('report-buttons'); // ID do container dos botões
+                const buttonContainer = document.getElementById('report-buttons'); 
                 const pdfButton = document.getElementById('pdf-button');
                 
                 pdfButton.textContent = "Gerando PDF, aguarde...";
                 pdfButton.disabled = true;
                 
-                // Esconde os botões do relatório antes de "printar"
                 if (buttonContainer) buttonContainer.style.display = 'none';
                 
-                // Garante que os gráficos sejam renderizados sem animação
-                // (Já configurado nas options, mas forçar um update pode ajudar)
-                if (this.state.chartProjectionReportInstance) this.state.chartProjectionReportInstance.update();
-                if (this.state.chartGapInstance) this.state.chartGapInstance.update();
-                if (this.state.chartEffortInstance) this.state.chartEffortInstance.update();
-
-
                 html2canvas(reportElement, {
-                    scale: 2, // Aumenta a resolução da captura
-                    backgroundColor: '#1f2937', // bg-gray-800
+                    scale: 2, 
+                    backgroundColor: '#1f2937', 
                     onclone: (clonedDoc) => {
-                        // Garante que o container da análise esteja visível no clone
                         clonedDoc.getElementById('analysis-report').style.display = 'block';
                     },
-                    useCORS: true // Para o caso de imagens externas
+                    useCORS: true 
                 }).then(canvas => {
                     const imgData = canvas.toDataURL('image/png');
                     const { jsPDF } = window.jspdf;
                     
-                    // Configuração do PDF em A4 (210mm de largura)
                     const pdfWidth = 210; 
                     const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
                     
@@ -1819,20 +1811,18 @@
                         format: 'a4'
                     });
 
-                    // Adiciona uma pequena margem
                     const margin = 5;
                     const pdfWidthWithMargin = pdfWidth - (margin * 2);
                     const pdfHeightWithMargin = (canvas.height * pdfWidthWithMargin) / canvas.width;
 
                     pdf.addImage(imgData, 'PNG', margin, margin, pdfWidthWithMargin, pdfHeightWithMargin);
                     
-                    // Lógica de múltiplas páginas se o conteúdo for muito alto
                     let heightLeft = pdfHeightWithMargin;
                     let position = 0;
-                    const pageHeight = 297 - (margin * 2); // Altura A4 - margens
+                    const pageHeight = 297 - (margin * 2); 
 
                     heightLeft -= pageHeight;
-                    position -= pageHeight; // Prepara para a próxima página
+                    position -= pageHeight; 
 
                     while (heightLeft > 0) {
                         pdf.addPage();
@@ -1843,21 +1833,17 @@
 
                     pdf.save('Relatorio_Foresight_Cidades.pdf');
                     
-                    // Mostra os botões novamente
                     if (buttonContainer) buttonContainer.style.display = 'flex';
                     pdfButton.textContent = "Gerar Relatório PDF";
                     pdfButton.disabled = false;
                     
                 }).catch(err => {
                     console.error("Erro ao gerar PDF:", err);
-                    // Mostra os botões novamente em caso de erro
                     if (buttonContainer) buttonContainer.style.display = 'flex';
                     pdfButton.textContent = "Erro ao gerar PDF";
                     pdfButton.disabled = false;
                 });
             },
-
-
         };
 
         // Inicializa a aplicação quando o DOM estiver pronto
